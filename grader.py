@@ -51,30 +51,11 @@ class Grader:
         # Apply perspective transform to get top down view of page.
         return four_point_transform(imgray, page.reshape(4, 2))
 
-    def decode_qr(self, im): 
-        """
-        Finds and decodes the QR code inside of a test image.
-
-        Args:
-            im (numpy.ndarray): An ndarray representing the entire test image.
-
-        Returns:
-            pyzbar.Decoded: A decoded QR code object.
-
-        """
-        # Increase image contrast to better identify QR code.
-        _, new_page = cv.threshold(im, 127, 255, cv.THRESH_BINARY)
-        decoded_objects = pyzbar.decode(new_page)
-
-        if not decoded_objects:
-            return None
-        else:
-            return decoded_objects[0]
-
     def image_is_upright(self, page, config):
         """
-        Checks if an image is upright, based on the coordinates of the QR code
-        in the image.
+      This function is a placeholder if you ever need to make sure an image is upright. In most cases it is pretty much useless.
+
+
 
         Args:
             page (numpy.ndarray): An ndarray representing the test image.
@@ -82,19 +63,10 @@ class Grader:
 
         Returns:
             bool: True if image is upright, False otherwise.
+        
 
         """
-        qr_code = self.decode_qr(page)
-        qr_x = qr_code.rect.left
-        qr_y = qr_code.rect.top
-        x_error = config['x_error']
-        y_error = config['y_error']
-
-        if ((config['qr_x'] - x_error <= qr_x <= config['qr_x'] + x_error) and 
-                (config['qr_y'] - y_error <= qr_y <= config['qr_y'] + y_error)):
-            return True
-        else:
-            return False
+        return True
 
     def upright_image(self, page, config):
         """
@@ -166,7 +138,7 @@ class Grader:
         
         self.scale_config_r(config, x_scale, y_scale, re_x, re_y)
 
-    def grade(self, image_name, verbose_mode, debug_mode, scale):
+    def grade(self, image_name, verbose_mode, debug_mode, scale, test, pagenum):
         """
         Grades a test image and outputs the result to stdout as a JSON object.
 
@@ -177,6 +149,8 @@ class Grader:
             debug_mode (bool): True to run program in debug mode, False 
                 otherwise.
             scale (str): Factor to scale image slices by.
+            test (str): Name of test
+            pagenum (int): Page number of test
 
         """
         # Initialize dictionary to be returned.
@@ -213,25 +187,18 @@ class Grader:
         if im is None:
             data['status'] = 1
             data['error'] = f'Image {image_name} not found'
-            return json.dump(data, sys.stdout);
+            return json.dump(data, sys.stdout)
 
-        # Find test page within image.
+        # Find largest box within image.
         page = self.find_page(im)
         if page is None:
             data['status'] = 1
             data['error'] = f'Page not found in {image_name}'
-            return json.dump(data, sys.stdout);   
+            return json.dump(data, sys.stdout) 
 
-        # Decode QR code, which will contain path to configuration file.
-        qr_code = self.decode_qr(page)
-        if qr_code is None:
-            data['status'] = 1
-            data['error'] = f'QR code not found in {image_name}'
-            return json.dump(data, sys.stdout);
-        else:
-            config_fname = qr_code.data.decode('utf-8')
-            config_fname = (os.path.dirname(os.path.abspath(sys.argv[0])) 
-                + '/config/6q.json')
+        #Identify configuration file  
+        config_fname = (os.path.dirname(os.path.abspath(__file__)) 
+                + f'/config/{test}_page{pagenum}.json')
 
         # Read config file into dictionary and scale values. Check for duplicate
         # keys with object pairs hook.
@@ -241,7 +208,7 @@ class Grader:
                     object_pairs_hook=config_parser.duplicate_key_check)
         except FileNotFoundError:
             data['status'] = 1
-            data['error'] = f'Configuration file {qrData} not found'
+            data['error'] = f'Configuration file {config_fname} not found'
             return json.dump(data, sys.stdout)
 
         # Parse config file.
@@ -260,7 +227,7 @@ class Grader:
         if page is None:
             data['status'] = 1
             data['error'] = f'Could not upright page in {image_name}'
-            return json.dump(data, sys.stdout);
+            return json.dump(data, sys.stdout)
 
         # Grade each test box and add result to data.
         for box_config in config['boxes']:

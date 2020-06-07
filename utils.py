@@ -20,6 +20,7 @@ def get_threshold(im):
 
     """
     blurred = cv.GaussianBlur(im, (5, 5), 0)
+    blurred =  cv.bilateralFilter(blurred,9,75,75)
     _, threshold = cv.threshold(blurred, 0, 255, cv.THRESH_BINARY_INV 
         | cv.THRESH_OTSU)
 
