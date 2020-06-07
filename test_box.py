@@ -108,7 +108,7 @@ class TestBox:
         theta = np.pi / 360  # angular resolution in radians of the Hough grid
         threshold = 30  # minimum number of votes (intersections in Hough grid cell)
         min_line_length = 13  # minimum number of pixels making up a line
-        max_line_gap = 2  # maximum gap in pixels between connectable line segments
+        max_line_gap = 3  # maximum gap in pixels between connectable line segments
         line_image = np.copy(box) * 0  # creating a blank to draw lines on
         line_image = cv.cvtColor(line_image, cv.COLOR_GRAY2BGR)
 
@@ -124,8 +124,13 @@ class TestBox:
                 cv.line(line_image,(x1,y1),(x2,y2),(255, 0,0),5)
         #remove found lines from image
         if self.debug_mode:
-            lines_edges = cv.addWeighted(cv.cvtColor(box, cv.COLOR_GRAY2BGR), 0.8, line_image, 1, 0)
-            cv.imshow('', lines_edges)
+            box_lines = cv.addWeighted(cv.cvtColor(box, cv.COLOR_GRAY2BGR), 0.8, line_image, 1, 0)
+            #lines_no_edges = cv.subtract(cv.cvtColor(line_image, cv.COLOR_BGR2GRAY), box)
+            _, thresholded_lines = cv.threshold(cv.cvtColor(line_image, cv.COLOR_BGR2GRAY), thresh=10, maxval=255, type=cv.THRESH_BINARY) 
+            box[thresholded_lines==255] = 0
+            cv.imshow('', box_lines)
+            cv.waitKey()
+            cv.imshow('', box)
             cv.waitKey()
 
         return box
@@ -146,8 +151,8 @@ class TestBox:
         """
         (x, y, w, h) = cv.boundingRect(contour)
         aspect_ratio = w / float(h)
-        min_aspect_ratio = 0.7
-        max_aspect_ratio = 1.3
+        min_aspect_ratio = 0.6
+        max_aspect_ratio = 1.4
 
         # Add offsets to get coordinates in relation to the whole test image 
         # instead of in relation to the test box.
