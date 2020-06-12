@@ -184,6 +184,42 @@ class TestBox:
                 return True
 
         return True
+    def compress_overlapping_bubbles(self, bubbles, box):
+        """
+        Finds Bubbles that are overlapping and uses the bigger one.
+
+        Args:
+            bubbles (list): A list of bubble contours.
+        
+        Returns:
+            clean_bubbles (list): A list of bubble contours.
+        """ 
+        clean_bubbles = []
+        first_bubble = bubbles[0]
+        for contour in bubbles:
+            (x, y, w, h) = cv.boundingRect(contour)
+            (x1, y1, w1, h1) = cv.boundingRect(first_bubble)
+            # it is easier to calculate the non-overlapping cases because there are less of them.
+            if not (x > x1 + w1 or x1 > x + w):
+                """if self.debug_mode:
+                    colorbox = cv.cvtColor(box, cv.COLOR_GRAY2BGR)
+                    cv.drawContours(colorbox, contour, -1, (0,255,255), 3)
+                    cv.imshow('', colorbox)
+                    cv.waitKey()"""
+                if w * h >= w1 * h1:
+                    clean_bubbles.append(contour)
+                    first_bubble = contour
+            else:
+                clean_bubbles.append(contour)
+                first_bubble = contour
+                """if self.debug_mode:
+                    colorbox = cv.cvtColor(box, cv.COLOR_GRAY2BGR)
+                    cv.drawContours(colorbox, contour, -1, (0,255,0), 3)
+                    cv.imshow('', colorbox)
+                    cv.waitKey()        """
+
+        return clean_bubbles    
+
 
     def get_bubbles(self, box):
         """
@@ -606,10 +642,13 @@ class TestBox:
                 if len(group) < 2:
                     continue
                 question_num = j + (i * len(group))
-                print(question_num, i * len(group))
-                question, _ = cutils.sort_contours(question, method=self.orientation)
+                #creates a new lambda function that finds the x coordinate of a contour
+                cntr_x = lambda cntr: cv.boundingRect(cntr)[0]
+                question_sorted = sorted(question, key = cntr_x)
+                # box is passed so we can draw the contours during debugging
+                clean_questions = self.compress_overlapping_bubbles(question_sorted, box)
 
-                self.grade_question(question, question_num, i, box)
+                self.grade_question(clean_questions, question_num, i, box)
 
     def grade(self):
         """
