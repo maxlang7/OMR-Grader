@@ -129,10 +129,9 @@ class TestBox:
             _, thresholded_lines = cv.threshold(cv.cvtColor(line_image, cv.COLOR_BGR2GRAY), thresh=10, maxval=255, type=cv.THRESH_BINARY) 
             box[thresholded_lines==255] = 0
             cv.imshow('', box_lines)
-            cv.waitKey()
+           # cv.waitKey()
             cv.imshow('', box)
-            cv.waitKey()
-
+           # cv.waitKey()
         return box
 
     def is_bubble(self, contour):
@@ -167,8 +166,8 @@ class TestBox:
             aspect_ratio < min_aspect_ratio or
             aspect_ratio > max_aspect_ratio):
 
-            if self.debug_mode:
-                print(f"not considered a bubble because width is {w:.2f} not between, {(self.bubble_width * 0.9):.2f}, {(self.bubble_width * 2.0):.2f}, or height is {h:.2f} not between, {(self.bubble_height * 0.9):.2f}, {(self.bubble_height * 2.0):.2f}, or aspect ratio is {aspect_ratio:.2f} not between {min_aspect_ratio}, {max_aspect_ratio}")
+            #if self.debug_mode:
+                #print(f"not considered a bubble because width is {w:.2f} not between, {(self.bubble_width * 0.9):.2f}, {(self.bubble_width * 2.0):.2f}, or height is {h:.2f} not between, {(self.bubble_height * 0.9):.2f}, {(self.bubble_height * 2.0):.2f}, or aspect ratio is {aspect_ratio:.2f} not between {min_aspect_ratio}, {max_aspect_ratio}")
 
 
 
@@ -217,7 +216,7 @@ class TestBox:
                     cv.drawContours(colorbox, contour, -1, (0,255,0), 3)
                     cv.imshow('', colorbox)
                     cv.waitKey()        """
-
+        
         return clean_bubbles    
 
 
@@ -234,7 +233,7 @@ class TestBox:
 
         """
         # Find bubbles in box.
-        contours, hierachy = cv.findContours(box, cv.RETR_TREE, 
+        contours, _ = cv.findContours(box, cv.RETR_TREE, 
             cv.CHAIN_APPROX_SIMPLE)
     
         # Init empty list for each group of bubbles.
@@ -250,7 +249,7 @@ class TestBox:
                 group_num = self.get_bubble_group(contour)
                 bubbles[group_num].append(contour)
                 allbubbles.append(contour)
-                print(cv.boundingRect(contour)[2])
+                #print(cv.boundingRect(contour)[2])
 
         
         if self.debug_mode:
@@ -268,7 +267,7 @@ class TestBox:
         # Some boxes are too small and can't be 4-point-transformed 
         if w < 100:
             return False
-        print("box", x, y, w, h)
+        #print("box", x, y, w, h)
         im = utils.get_transform(box, threshold)
         contours, _ = cv.findContours(im, cv.RETR_EXTERNAL, 
             cv.CHAIN_APPROX_SIMPLE)
@@ -431,7 +430,7 @@ class TestBox:
 
         return questions
 
-    def get_image_coords(self, question_num, group_num, config):
+    def get_image_coords(self, question_num, group_num, group_config):
         """
         Finds and returns the coordinates of a question in the test image.
 
@@ -448,21 +447,21 @@ class TestBox:
             y_max (float): Maximum y coordinate.
 
         """
-        diff = self.get_question_diff(config)
-        offset = self.get_question_offset(config)
+        diff = self.get_question_diff(group_config)
+        offset = self.get_question_offset(group_config)
 
         if self.orientation == 'left-to-right':
             question_num = question_num - (group_num * self.rows) - 1
-            x_min = max(config['x_min'] - self.x - self.x_error, 0)
-            x_max = config['x_max'] - self.x + self.x_error
+            x_min = max(group_config['x_min'] - self.x - self.x_error, 0)
+            x_max = group_config['x_max'] - self.x + self.x_error
             y_min = max((diff * question_num) + offset - (self.y_error / 2), 0)
             y_max = y_min + self.bubble_height + self.y_error
         elif self. orientation == 'top-to-bottom':
             question_num = question_num - (group_num * self.columns) - 1
             x_min = max((diff * question_num) + offset - (self.x_error / 2), 0)
             x_max = x_min + self.bubble_width + self.x_error
-            y_min = max(config['y_min'] - self.y - self.y_error, 0)
-            y_max = config['y_max'] - self.y + self.y_error
+            y_min = max(group_config['y_min'] - self.y - self.y_error, 0)
+            y_max = group_config['y_max'] - self.y + self.y_error
 
         return x_min, x_max, y_min, y_max
 
@@ -636,10 +635,13 @@ class TestBox:
         for (i, group) in enumerate(bubbles):
             # Split a group of bubbles by question.
             group = self.group_by_question(group, self.groups[i])
-
+            # if your group only contains one thing, it is probably not a group, so we should filter it out
+            if len(group) < 2:
+                continue
             # Sort bubbles in each question based on box orientation then grade.
             for (j, question) in enumerate(group, 1):
-                if len(group) < 2:
+                # Make sure that we have enough bubbles in each question.
+                if len(question) < self.columns:
                     continue
                 question_num = j + (i * len(group))
                 #creates a new lambda function that finds the x coordinate of a contour
@@ -647,7 +649,6 @@ class TestBox:
                 question_sorted = sorted(question, key = cntr_x)
                 # box is passed so we can draw the contours during debugging
                 clean_questions = self.compress_overlapping_bubbles(question_sorted, box)
-
                 self.grade_question(clean_questions, question_num, i, box)
 
     def grade(self):

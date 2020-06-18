@@ -1,0 +1,36 @@
+This file describes how the config file is formatted
+
+(Everything is in pixels)
+
+
+
+    "page_width": 1550.0,  used for scaling
+    "page_height": 1100.0, used for scaling
+    "bubble_width": 35.0,  Kinda Obvious
+    "bubble_height": 35.0, Kinda Obvious
+    "x_error": 10.8, 
+    "y_error": 10.8,
+    "boxes": [
+        {
+            "name": "answer",
+            "type": "letter",
+            "orientation": "left-to-right", "left-to-right, right-to-left, bottom-to-top, top-to-bottom
+            "multiple_responses": true, 
+            "x": 10.0, *subtracted from every group's x_min and x_max to calculate a group's boundaries
+            "y": 5.0,  *subtracted form every group's y_min and y_max to calculate a group's boundaries
+            "rows": 9, 
+            "columns": 5, 
+            "groups": [
+                {
+                    "x_min": 40.0, 
+                    "x_max": 200.0,
+                    "y_min": 100.0,
+                    "y_max": 1175.0
+                },
+                ...
+                
+            ]
+        }
+       
+    ]
+}

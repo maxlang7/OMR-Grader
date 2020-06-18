@@ -13,7 +13,7 @@ class ExampleImageTests(unittest.TestCase):
 
     def test_page2(self):
         grader = g.Grader()
-        jsonData = grader.grade('test/images/sat_test2.png', True, True, 1.0, 'sat', 1)
+        jsonData = grader.grade('test/images/sat_test2.png', True, True, 1.0, 'sat', 2)
         data = json.loads(jsonData)
 
         self.assertEqual(data['answer']['bubbled'][0:7], ['A', 'B', 'C', 'B', 'D', 'C', 'B'])
