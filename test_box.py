@@ -246,6 +246,7 @@ class TestBox:
 
         
         if self.debug_mode:
+            #show the detected bubbles in yellow.
             colorbox = cv.cvtColor(box, cv.COLOR_GRAY2BGR)
             cv.drawContours(colorbox, allbubbles, -1, (0,255,255), 3)
             cv.imshow('', colorbox)
@@ -589,7 +590,7 @@ class TestBox:
         unsure = False
 
         # If question is missing bubbles, mark as unsure.
-        #working here
+
         if self.debug_mode:
             colorbox = cv.cvtColor(box, cv.COLOR_GRAY2BGR)
             cv.drawContours(colorbox, question, -1, (0,255,0), 3)
@@ -604,7 +605,7 @@ class TestBox:
         for (i, bubble) in enumerate(question):
                 percent_marked = self.get_percent_marked(bubble, box)
 
-                # If ~50% bubbled, count as marked.
+                # If ~80% bubbled, count as marked.
                 if percent_marked > 0.8:
                     bubbled += str(i)
                 # Count as unsure.
