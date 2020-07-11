@@ -154,8 +154,10 @@ class TestBox:
         """
         (x, y, w, h) = cv.boundingRect(contour)
         aspect_ratio = w / float(h)
-        min_aspect_ratio = 0.6
-        max_aspect_ratio = 1.4
+        min_aspect_ratio = 0.8
+        max_aspect_ratio = 1.3
+
+
 
         # Add offsets to get coordinates in relation to the whole test image 
         # instead of in relation to the test box.
@@ -163,28 +165,15 @@ class TestBox:
         y += self.y
 
         # Ignore contour if not of sufficient width or height, or not circular.
-        if (w < self.bubble_width * 0.6 or 
-            h < self.bubble_height * 0.6 or
-            w > self.bubble_width * 5.0 or 
-            h > self.bubble_height * 5.0 or
+        if (w < self.bubble_width * 0.8 or 
+            h < self.bubble_height * 0.8 or
+            w > self.bubble_width * 2 or 
+            h > self.bubble_height * 2 or
             aspect_ratio < min_aspect_ratio or
             aspect_ratio > max_aspect_ratio):
-
             #if self.debug_mode:
                 #print(f"not considered a bubble because width is {w:.2f} not between, {(self.bubble_width * 0.9):.2f}, {(self.bubble_width * 2.0):.2f}, or height is {h:.2f} not between, {(self.bubble_height * 0.9):.2f}, {(self.bubble_height * 2.0):.2f}, or aspect ratio is {aspect_ratio:.2f} not between {min_aspect_ratio}, {max_aspect_ratio}")
-
-
-
             return False
-
-        # If the contour fits the coordinates of a bubble group, add it to that
-        # group.
-        for (i, group) in enumerate(self.groups):
-            if (x >= group['x_min'] - self.x_error and
-                x <= group['x_max'] + self.x_error and
-                y >= group['y_min'] - self.y_error and
-                y <= group['y_max'] + self.y_error):
-                return True
 
         return True
     def compress_overlapping_bubbles(self, bubbles, box):
@@ -200,8 +189,8 @@ class TestBox:
         clean_bubbles = []
         first_bubble = bubbles[0]
         for contour in bubbles:
-            (x, y, w, h) = cv.boundingRect(contour)
-            (x1, y1, w1, h1) = cv.boundingRect(first_bubble)
+            (x, _y, w, h) = cv.boundingRect(contour)
+            (x1, _y1, w1, h1) = cv.boundingRect(first_bubble)
             # it is easier to calculate the non-overlapping cases because there are less of them.
             if not (x > x1 + w1 or x1 > x + w):
                 """if self.debug_mode:
