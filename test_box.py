@@ -50,6 +50,7 @@ class TestBox:
         self.y_error = config['y_error']
         self.min_bubbles_per_box = config['min_bubbles_per_box']
         self.box_to_grade = config['box_to_grade']
+        self.num_questions = config['num_questions']
         # Set number of bubbles per question based on box orientation.
         if self.orientation == 'left-to-right':
             self.bubbles_per_q = self.columns
