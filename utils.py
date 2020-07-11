@@ -19,13 +19,11 @@ def get_threshold(im):
             thresholded image.
 
     """
-    blurred = cv.GaussianBlur(im, (5, 5), 0)
-    blurred =  cv.bilateralFilter(blurred,9,75,75)
-    _, threshold = cv.threshold(blurred, 0, 255, cv.THRESH_BINARY_INV 
-        | cv.THRESH_OTSU)
-
+    blurred = cv.GaussianBlur(im, (1, 1), 0)
+    blurred = cv.bilateralFilter(blurred,5,50,50)
+    threshold = cv.adaptiveThreshold(blurred,255,cv.ADAPTIVE_THRESH_GAUSSIAN_C,\
+            cv.THRESH_BINARY_INV, 91, 9)
     return threshold
-
 
 def get_transform(contour, im):
     """
@@ -41,9 +39,19 @@ def get_transform(contour, im):
 
     """
     peri = cv.arcLength(contour, True)
-    approx = cv.approxPolyDP(contour, 0.02 * peri, True)
+    epsilon_factor = 0.001
+    approx = cv.approxPolyDP(contour, epsilon_factor * peri, True)
+    #tries various epsilons to try to identify a rectangle (4 sides)
+    while approx.size != 8:
+        approx = cv.approxPolyDP(contour, epsilon_factor * peri, True)
+        epsilon_factor += 0.001
+        if epsilon_factor > 1: break
 
-    return four_point_transform(im, approx.reshape(4, 2))
+    if approx.size == 8:
+        return four_point_transform(im, approx.reshape(4, 2))
+    else:
+        #failed to transform... just returns the untransformed image
+        return im
 
 
 def rotate_image(im, angle):
