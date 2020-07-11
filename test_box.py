@@ -102,14 +102,14 @@ class TestBox:
             (numpy.ndarray): An ndarray representing the image without lines
             
         """
-        low_threshold = 10
+        low_threshold = 5
         high_threshold = 200
         edges = cv.Canny(box, low_threshold, high_threshold)
-        rho = 1  # distance resolution in pixels of the Hough grid
-        theta = np.pi / 360  # angular resolution in radians of the Hough grid
-        threshold = 30  # minimum number of votes (intersections in Hough grid cell)
-        min_line_length = 13  # minimum number of pixels making up a line
-        max_line_gap = 3  # maximum gap in pixels between connectable line segments
+        rho = .8  # distance resolution in pixels of the Hough grid
+        theta = np.pi / 600  # angular resolution in radians of the Hough grid
+        threshold = 90   # minimum number of votes (intersections in Hough grid cell)
+        min_line_length = 10  # minimum number of pixels making up a line
+        max_line_gap = 2  # maximum gap in pixels between connectable line segments
         line_image = np.copy(box) * 0  # creating a blank to draw lines on
         line_image = cv.cvtColor(line_image, cv.COLOR_GRAY2BGR)
 
@@ -122,17 +122,20 @@ class TestBox:
         
         for line in lines:
             for x1,y1,x2,y2 in line:
-                cv.line(line_image,(x1,y1),(x2,y2),(255, 0,0),5)
+                cv.line(line_image,(x1,y1),(x2,y2),(255,0,0),2)
         #remove found lines from image
         if self.debug_mode:
+            cv.imshow('', edges)
+            cv.waitKey()
             box_lines = cv.addWeighted(cv.cvtColor(box, cv.COLOR_GRAY2BGR), 0.8, line_image, 1, 0)
             #lines_no_edges = cv.subtract(cv.cvtColor(line_image, cv.COLOR_BGR2GRAY), box)
+            cv.imshow('', box_lines)
+            cv.waitKey()
             _, thresholded_lines = cv.threshold(cv.cvtColor(line_image, cv.COLOR_BGR2GRAY), thresh=10, maxval=255, type=cv.THRESH_BINARY) 
             box[thresholded_lines==255] = 0
-            cv.imshow('', box_lines)
-           # cv.waitKey()
+            #box = cv.bilateralFilter(box,3,50,50)
             cv.imshow('', box)
-           # cv.waitKey()
+            cv.waitKey()
         return box
 
     def is_bubble(self, contour):
