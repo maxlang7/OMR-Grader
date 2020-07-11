@@ -6,7 +6,7 @@
     "x_error": 10.8,
     "y_error": 10.8,
     "min_bubbles_per_box": 20,
-    "box_to_grade": 1,
+    "box_to_grade": 2,
     "boxes": [
         {
             "name": "answer",
