@@ -671,12 +671,16 @@ class TestBox:
             'status': 0,
             'error': ''
         }
-
         # Find box, find bubbles in box, then grade bubbles.
-        box = self.get_box()
-        nolinebox = self.erase_lines(box)
-        bubbles = self.get_bubbles(nolinebox)
-        self.grade_bubbles(bubbles, nolinebox)
+        gradable_box = self.get_box()
+        for (treatment) in enumerate(['','erase_lines']):
+            if treatment == 'erase_lines':
+                gradable_box = self.erase_lines(gradable_box)
+
+            bubbles = self.get_bubbles(gradable_box)
+            self.grade_bubbles(bubbles, gradable_box)
+            if len(self.bubbled) == self.num_questions:
+                break
 
         # Add results of grading to return value.
         data['bubbled'] = self.bubbled
