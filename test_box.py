@@ -550,7 +550,7 @@ class TestBox:
         mask = cv.bitwise_and(box, box, mask=mask)
         total = cv.countNonZero(mask)
         (x, y, w, h) = cv.boundingRect(bubble)
-        area = math.pi * ((min(w, h) / 2) ** 2)
+        area = math.pi * ((max(w, h) / 2) ** 2)
 
         return total / area
 
