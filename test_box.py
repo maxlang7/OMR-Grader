@@ -48,7 +48,8 @@ class TestBox:
         self.bubble_height = config['bubble_height']
         self.x_error = config['x_error']
         self.y_error = config['y_error']
-
+        self.min_bubbles_per_box = config['min_bubbles_per_box']
+        self.box_to_grade = config['box_to_grade']
         # Set number of bubbles per question based on box orientation.
         if self.orientation == 'left-to-right':
             self.bubbles_per_q = self.columns
@@ -264,9 +265,15 @@ class TestBox:
 
     def box_contains_bubbles(self, box, threshold,):
         (x, y, w, h) = cv.boundingRect(box)
-        # Some boxes are too small and can't be 4-point-transformed 
+        bubbles = []
+        # Some boxes are too small and can't be 4-point-transformed so they aren't gonna be the one we want anyway.
+        
         if w < 100:
             return False
+        im = threshold[y:y+h, x:x+w]
+        im = cv.resize(im, None, fx=self.scale, fy=self.scale)
+        cv.imshow('', im)
+        cv.waitKey()
         #print("box", x, y, w, h)
         im = utils.get_transform(box, threshold)
         contours, _ = cv.findContours(im, cv.RETR_EXTERNAL, 
@@ -274,9 +281,11 @@ class TestBox:
 
         for contour in contours:
             if self.is_bubble(contour):
+                 bubbles.append(contour)
+        if len(bubbles) < self.min_bubbles_per_box:
+            return False
+        else:
                 return True
-
-        return False
 
     def is_box(self, contour, threshold):
         """
@@ -291,10 +300,9 @@ class TestBox:
             bool: True for success, False otherwise.
 
         """
-        (x, y, _, _) = cv.boundingRect(contour)
-
-        if ((self.x - self.x_error <= x <= self.x + self.x_error) and 
-            (self.y - self.y_error <= y <= self.y + self.y_error) and
+        (_, _, w, h) = cv.boundingRect(contour)
+        threshh, threshw = threshold.shape
+        if (w*h >= .1 * threshh * threshw and #eliminating possible boxes based on area so we get the right box to grade.
             self.box_contains_bubbles(contour, threshold)):
             return True
         else:
@@ -314,14 +322,19 @@ class TestBox:
         contours, _ = cv.findContours(threshold, cv.RETR_TREE, 
             cv.CHAIN_APPROX_SIMPLE)
         contours = sorted(contours, key=cv.contourArea, reverse=True)
-
+        potential_boxes = []
         # Iterate through contours until the correct box is found.
+        #try to handle case 1a, where there is one big outer box and smaller ones inside of it and one of the smaller ones actually contains the bubbles.
         for contour in contours:
             if self.is_box(contour, threshold):
-                return utils.get_transform(contour, threshold)
+                potential_boxes.append(contour)
+        print(len(potential_boxes)) 
 
         # If is_box doesn't find a box of the right size, accept the page as the box. 
+        if len(potential_boxes) == 0:
         return threshold
+        else:                
+            return utils.get_transform(potential_boxes[self.box_to_grade - 1], threshold)
         
     def init_questions(self):
         """

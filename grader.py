@@ -235,6 +235,9 @@ class Grader:
             box_config['y_error'] = config['y_error']
             box_config['bubble_width'] = config['bubble_width']
             box_config['bubble_height'] = config['bubble_height']
+            box_config['min_bubbles_per_box'] = config['min_bubbles_per_box']
+            box_config['box_to_grade'] = config['box_to_grade']
+
             box = TestBox(page, box_config, verbose_mode, debug_mode, scale)
             data[box.name] = box.grade()
 
@@ -242,7 +245,7 @@ class Grader:
        # json.dump(data, sys.stdout)
         #print()
 
-        # For debugging.
+         # For debugging.
         return json.dumps(data)
 
 
