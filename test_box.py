@@ -326,7 +326,7 @@ class TestBox:
 
         # If is_box doesn't find a box of the right size, accept the page as the box. 
         if len(potential_boxes) == 0:
-        return threshold
+            return threshold
         else:                
             return utils.get_transform(potential_boxes[self.box_to_grade - 1], threshold)
         
