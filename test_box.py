@@ -172,8 +172,9 @@ class TestBox:
             h > self.bubble_height * 2 or
             aspect_ratio < min_aspect_ratio or
             aspect_ratio > max_aspect_ratio):
-            #if self.debug_mode:
-                #print(f"not considered a bubble because width is {w:.2f} not between, {(self.bubble_width * 0.9):.2f}, {(self.bubble_width * 2.0):.2f}, or height is {h:.2f} not between, {(self.bubble_height * 0.9):.2f}, {(self.bubble_height * 2.0):.2f}, or aspect ratio is {aspect_ratio:.2f} not between {min_aspect_ratio}, {max_aspect_ratio}")
+            if self.debug_mode:
+                if aspect_ratio > min_aspect_ratio and aspect_ratio < max_aspect_ratio and w > 15:
+                    print(f"not considered a bubble because width is {w:.2f} not between, {(self.bubble_width * 0.8):.2f}, {(self.bubble_width * 2.0):.2f}, or height is {h:.2f} not between, {(self.bubble_height * 0.8):.2f}, {(self.bubble_height * 2.0):.2f}, or aspect ratio is {aspect_ratio:.2f} not between {min_aspect_ratio}, {max_aspect_ratio}")
             return False
 
         return True
@@ -266,8 +267,9 @@ class TestBox:
             return False
         im = threshold[y:y+h, x:x+w]
         im = cv.resize(im, None, fx=self.scale, fy=self.scale)
-        cv.imshow('', im)
-        cv.waitKey()
+        if self.debug_mode:
+            cv.imshow('', im)
+            cv.waitKey()
         #print("box", x, y, w, h)
         im = utils.get_transform(box, threshold)
         contours, _ = cv.findContours(im, cv.RETR_EXTERNAL, 
@@ -276,10 +278,11 @@ class TestBox:
         for contour in contours:
             if self.is_bubble(contour):
                  bubbles.append(contour)
+
         if len(bubbles) < self.min_bubbles_per_box:
             return False
         else:
-                return True
+            return True
 
     def is_box(self, contour, threshold):
         """
@@ -490,7 +493,10 @@ class TestBox:
         config = self.groups[group_num]
         (x_min, x_max, y_min, y_max) = self.get_image_coords(question_num, 
             group_num, config)
-
+        
+        if self.debug_mode:
+            print(f"image slice coordinates are{x_min}-{x_max}, {y_min}-{y_max} ")
+        
         # Crop image and scale.
         im = box[int(y_min): int(y_max), int(x_min): int(x_max)]
         im = cv.resize(im, None, fx=self.scale, fy=self.scale)

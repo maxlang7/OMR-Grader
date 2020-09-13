@@ -17,7 +17,7 @@ class Grader:
 
     def find_page(self, im):
         """
-        Finds and returns the test box within a given image.
+        Finds and returns the outside box that contains the entire test. Will use this to scale the given image.
 
         Args:
             im (numpy.ndarray): An ndarray representing the entire test image.
@@ -195,6 +195,9 @@ class Grader:
             data['status'] = 1
             data['error'] = f'Page not found in {image_name}'
             return json.dump(data, sys.stdout) 
+        if debug_mode:
+            cv.imshow('', page)
+            cv.waitKey()
 
         #Identify configuration file  
         config_fname = (os.path.dirname(os.path.abspath(__file__)) 
