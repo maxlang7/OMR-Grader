@@ -618,24 +618,24 @@ class TestBox:
             self.bubbled.append('?')
             return
 
+        bubble_pcts=[]
         for (i, bubble) in enumerate(question):
                 percent_marked = self.get_percent_marked(bubble, box)
-
-                # If ~80% bubbled, count as marked.
-                if percent_marked > 0.8:
+                bubble_pcts.append(percent_marked)
+                # If >75% bubbled, count as marked.   
+                if percent_marked > 0.75:
                     bubbled += str(i)
                 # Count as unsure.
-                elif percent_marked > 0.75:
+                elif percent_marked > 0.65:
                     unsure = True
                     self.handle_unsure_question(question_num, group_num, box)
-                    bubbled = '?'
-                    break
-
-        # If multiple responses found for a single response question, mark as
-        # unsure.
-        if len(bubbled) > 1 and self.multiple_responses == False:
-            self.handle_unsure_question(question_num, group_num, box)
-            bubbled = '?'
+                    #bubbled = '?'
+                    #break
+        if self.multiple_responses == False:
+            # find the darkest bubble in a question
+            darkest_index = np.argmax(bubble_pcts)
+            if bubble_pcts[darkest_index] > .7:
+                bubbled = str(darkest_index)
 
         # Add image slice if program running in verbose mode and image slice not
         # already added.
