@@ -6,6 +6,12 @@ import numpy as np
 
 import utils
 
+class Error(Exception):
+    pass
+
+class BoxNotFoundError(Error):
+    def __init__(self, message):
+        self.message = message
 
 class TestBox:
 
@@ -329,7 +335,7 @@ class TestBox:
 
         # If is_box doesn't find a box of the right size, accept the page as the box. 
         if len(potential_boxes) == 0:
-            return threshold
+            raise BoxNotFoundError('No box found on the page')
         else:                
             return utils.get_transform(potential_boxes[self.box_to_grade - 1], threshold)
         
