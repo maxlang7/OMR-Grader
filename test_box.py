@@ -63,6 +63,9 @@ class TestBox:
         elif self.orientation == 'top-to-bottom':
             self.bubbles_per_q = self.rows
 
+        self.init_result_structures()
+
+    def init_result_structures(self):
         # Return values.
         self.bubbled = []
         self.unsure = []
@@ -686,6 +689,7 @@ class TestBox:
         # Find box, find bubbles in box, then grade bubbles.
         gradable_box = self.get_box()
         for (treatment) in enumerate(['','erase_lines']):
+            self.init_result_structures()
             if treatment == 'erase_lines':
                 gradable_box = self.erase_lines(gradable_box)
 
