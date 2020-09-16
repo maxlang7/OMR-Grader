@@ -138,7 +138,7 @@ class Grader:
         
         self.scale_config_r(config, x_scale, y_scale, re_x, re_y)
 
-    def grade(self, image_name, verbose_mode, debug_mode, scale, test, pagenum):
+    def grade(self, image_name, verbose_mode, debug_mode, scale, test, page_number, box_number = 1):
         """
         Grades a test image and outputs the result to stdout as a JSON object.
 
@@ -150,7 +150,8 @@ class Grader:
                 otherwise.
             scale (str): Factor to scale image slices by.
             test (str): Name of test
-            pagenum (int): Page number of test
+            page_number (int): Page number of test
+            box_number (int): Optional; which box to grade on the test (ordered largest to smallest)
 
         """
         # Initialize dictionary to be returned.
@@ -176,6 +177,7 @@ class Grader:
             data['error'] = f'Scale {scale} must be positive'
             return json.dump(data, sys.stdout)
 
+        #TODO: convert other image types to .png
         # Verify that the filepath leads to a .png
         if not (image_name.endswith('.png')):
             data['status'] = 1
@@ -200,8 +202,13 @@ class Grader:
             cv.waitKey()
 
         #Identify configuration file  
-        config_fname = (os.path.dirname(os.path.abspath(__file__)) 
-                + f'/config/{test}_page{pagenum}.json')
+        if box_number == 1:
+            config_fname = (os.path.dirname(os.path.abspath(__file__)) 
+            + f'/config/{test}_page{page_number}.json')
+        else:
+            config_fname = (os.path.dirname(os.path.abspath(__file__)) 
+            + f'/config/{test}_page{page_number}_box{box_number}.json')
+
 
         # Read config file into dictionary and scale values. Check for duplicate
         # keys with object pairs hook.

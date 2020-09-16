@@ -5,8 +5,8 @@
     "bubble_height": 26.0,
     "x_error": 10.8,
     "y_error": 10.8,
-    "min_bubbles_per_box": 200,
-    "box_to_grade": 1,
+    "min_bubbles_per_box": 14,
+    "box_to_grade": 2,
     "boxes": [
         {
             "name": "answer",
