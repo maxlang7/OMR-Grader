@@ -242,6 +242,7 @@ class TestBox:
     
         # Init empty list for each group of bubbles.
         allbubbles = []
+        nonbubbles = []
         bubbles = []
         for _ in range(len(self.groups)):
             bubbles.append([])
@@ -254,8 +255,9 @@ class TestBox:
                 bubbles[group_num].append(contour)
                 allbubbles.append(contour)
                 #print(cv.boundingRect(contour)[2])
-
-        
+            else:
+                nonbubbles.append(contour)
+ 
         if self.debug_mode:
             #show the detected bubbles in yellow.
             colorbox = cv.cvtColor(box, cv.COLOR_GRAY2BGR)
@@ -265,7 +267,7 @@ class TestBox:
 
 
 
-        return bubbles
+        return bubbles, nonbubbles
 
     def box_contains_bubbles(self, box, threshold,):
         (x, y, w, h) = cv.boundingRect(box)
@@ -590,6 +592,31 @@ class TestBox:
         elif self.type == 'letter':
             return ''.join([chr(int(c) + 65) for c in bubbled])
 
+    # This function is for when a bubble gets colored outside the lines and its aspect ratio isn't close enough to 1. 
+    # We see if it is in the position that we think a bubble will be and if it is we add it to the list of bubbles. 
+    def rescue_expected_bubbles(self, qgroup, question_bubbles, contours):
+        # use the good bubbles in each question to compute the expected Y
+        y_values = []
+        for contour in question_bubbles:
+            x, y, _, _ = cv.boundingRect(contour)
+            y_values.append(y)
+           
+        expected_y = np.median(y_values)
+        # use the good bubbles from the whole group to compute the expected X
+        for i in range(len(question_bubbles)): 
+            x_values = []
+            for row in qgroup:
+                if i < len(row):
+                    x, y, _, _ = cv.boundingRect(row[i])
+                    x_values.append(x)
+            expected_x = np.median(x_values)
+            if self.debug_mode:
+                print(f'expected_x:{expected_x} expected_y:{expected_y}')
+        # look through all the contours to try to find one around the right position
+        return question_bubbles
+       
+    
+
     def grade_question(self, question, question_num, group_num, box):
         """
         Grades a question and adds the result to the 'bubbled' list.
@@ -644,33 +671,33 @@ class TestBox:
 
         self.bubbled.append(self.format_answer(bubbled))
 
-    def grade_bubbles(self, bubbles, box):
+    def grade_bubbles(self, bubbles, nonbubbles, box):
         """
         Grades a list of bubbles from the test box.
 
         Args:
             bubbles (list): A list of lists, where each list is a group of 
                 bubble contours.
+            nonbubbles (list): A list of the contours that weren't determined to be bubbles.
             box (numpy.ndarray): An ndarray representing the test box.
 
         """
         for (i, group) in enumerate(bubbles):
             # Split a group of bubbles by question.
-            group = self.group_by_question(group, self.groups[i])
-            # if your group only contains one thing, it is probably not a group, so we should filter it out
-            if len(group) < 2:
+            qgroup = self.group_by_question(group, self.groups[i])
+            # if your qgroup only contains one thing, it is probably not a group, so we should filter it out
+            if len(qgroup) <= 1:
                 continue
             # Sort bubbles in each question based on box orientation then grade.
-            for (j, question) in enumerate(group, 1):
+            for (j, question) in enumerate(qgroup, 1):
                 # Make sure that we have enough bubbles in each question.
-                if len(question) < self.columns:
-                    continue
-                question_num = j + (i * len(group))
+                question_num = j + (i * len(qgroup))
                 #creates a new lambda function that finds the x coordinate of a contour
                 cntr_x = lambda cntr: cv.boundingRect(cntr)[0]
                 question_sorted = sorted(question, key = cntr_x)
                 # box is passed so we can draw the contours during debugging
                 clean_questions = self.compress_overlapping_bubbles(question_sorted, box)
+                clean_questions = self.rescue_expected_bubbles(qgroup, clean_questions, nonbubbles)
                 self.grade_question(clean_questions, question_num, i, box)
 
     def grade(self):
@@ -693,8 +720,8 @@ class TestBox:
             if treatment == 'erase_lines':
                 gradable_box = self.erase_lines(gradable_box)
 
-            bubbles = self.get_bubbles(gradable_box)
-            self.grade_bubbles(bubbles, gradable_box)
+            bubbles, nonbubbles = self.get_bubbles(gradable_box)
+            self.grade_bubbles(bubbles, nonbubbles, gradable_box)
             if len(self.bubbled) == self.num_questions:
                 break
 
