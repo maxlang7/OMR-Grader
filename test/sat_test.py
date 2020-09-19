@@ -3,8 +3,8 @@ import json
 import grader as g
 
 class ExampleImageTests(unittest.TestCase):
-    debug_mode = False #turn both to true to see images.
-    verbose_mode = False
+    debug_mode = True #turn both to true to see images.
+    verbose_mode = True
 
     def test_page1(self):
         grader = g.Grader()
@@ -22,7 +22,7 @@ class ExampleImageTests(unittest.TestCase):
     
     def test_page3(self):
         grader = g.Grader()
-        jsonData = grader.grade('test/images/sat_test3.png', self.debug_mode, self.verbose_mode, 1.0, 'sat', 3)
+        jsonData = grader.grade('test/images/sat_test3.png', self.debug_mode, self.verbose_mode, 1.0, 'sat', 3, 2)
         data = json.loads(jsonData)
 
         self.assertEqual(data['answer']['bubbled'][0:8], ['D', 'B', 'A', 'B', 'B', 'C', 'A', 'C'])
@@ -82,7 +82,18 @@ class ExampleImageTests(unittest.TestCase):
  
     def test_page3a(self):
         grader = g.Grader()
-        jsonData = grader.grade('test/images/sat_test3a.png', self.debug_mode, self.verbose_mode, 1.0, 'sat', 3)
+        jsonData = grader.grade('test/images/sat_test3a.png', self.debug_mode, self.verbose_mode, 1.0, 'sat', 3, 1)
+        data = json.loads(jsonData)
+
+        self.assertEqual(len(data['answer']['bubbled']),9)
+        self.assertEqual(data['answer']['bubbled'], 'C B A'.split(' ') +
+                                                    'A C C'.split(' ') +
+                                                    'A D B'.split(' ') )
+                                                    
+
+    def test_page3_box2a(self):
+        grader = g.Grader()
+        jsonData = grader.grade('test/images/sat_test3a.png', self.debug_mode, self.verbose_mode, 1.0, 'sat', 3, 2)
         data = json.loads(jsonData)
 
         self.assertEqual(len(data['answer']['bubbled']),15)
@@ -90,11 +101,11 @@ class ExampleImageTests(unittest.TestCase):
                                                     'A C C'.split(' ') +
                                                     'A D B'.split(' ') +
                                                     'C C B'.split(' ') +
-                                                    'D A D'.split(' ') )
+                                                    'D A D'.split(' ') )                                                
     
     def test_page3b(self):
         grader = g.Grader()
-        jsonData = grader.grade('test/images/sat_test3b.png', self.debug_mode, self.verbose_mode, 1.0, 'sat', 3)
+        jsonData = grader.grade('test/images/sat_test3b.png', self.debug_mode, self.verbose_mode, 1.0, 'sat', 3, 2)
         data = json.loads(jsonData)
 
         self.assertEqual(len(data['answer']['bubbled']),15)
@@ -109,14 +120,24 @@ class ExampleImageTests(unittest.TestCase):
         jsonData = grader.grade('test/images/sat_test4a.png', self.debug_mode, self.verbose_mode, 1.0, 'sat', 4)
         data = json.loads(jsonData)
 
-        self.assertEqual(data['answer']['bubbled'][0:7], ['', '', 'B', 'A', 'C', '', ''])
+        self.assertEqual(len(data['answer']['bubbled']),30 )
+        self.assertEqual(data['answer']['bubbled'], 'C B A C C B'.split(' ') +
+                                                    'D D A B B D'.split(' ') +
+                                                    'B C A B C C'.split(' ') +
+                                                    'B C D B C A'.split(' ') +
+                                                    'B D C B A B'.split(' ') )
 
     def test_page4b(self):
         grader = g.Grader()
         jsonData = grader.grade('test/images/sat_test4b.png', self.debug_mode, self.verbose_mode, 1.0, 'sat', 4)
         data = json.loads(jsonData)
 
-        self.assertEqual(data['answer']['bubbled'][0:7], ['', '', 'B', 'A', 'C', '', ''])
+        self.assertEqual(len(data['answer']['bubbled']),30)
+        self.assertEqual(data['answer']['bubbled'], 'A C A C B D'.split(' ') +
+                                                    'C A A A D C'.split(' ') +
+                                                    'A D D B A C'.split(' ') +
+                                                    'A A D A B D'.split(' ') +
+                                                    'B A D A D B'.split(' ') )
     
     def test_page5a(self):
         grader = g.Grader()
