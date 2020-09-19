@@ -424,6 +424,10 @@ class TestBox:
 
         (x, y, _, _) = cv.boundingRect(bubble)
 
+        if self.debug_mode:
+            print(f"qnum {round((y - offset) / diff)}= bubble y: {y} - offset {offset} / diff: {diff}")
+
+
         if self.orientation == 'left-to-right':
             return round((y - offset) / diff)
         elif self.orientation == 'top-to-bottom':
@@ -506,7 +510,7 @@ class TestBox:
             group_num, config)
         
         if self.debug_mode:
-            print(f"image slice coordinates are{x_min}-{x_max}, {y_min}-{y_max} ")
+            print(f"image slice coordinates q{question_num} : {round(x_min,1)}-{round(x_max,1)}, {round(y_min,1)}-{round(y_max,1)} ")
         
         # Crop image and scale.
         im = box[int(y_min): int(y_max), int(x_min): int(x_max)]
