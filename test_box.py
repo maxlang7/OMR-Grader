@@ -99,7 +99,7 @@ class TestBox:
                 y <= group['y_max'] + self.y_error):
                 return i
 
-        return -1
+        return None
     
     def erase_lines(self, box):
         """
@@ -252,9 +252,10 @@ class TestBox:
             if self.is_bubble(contour):
                # what is the contour hierachy (skip contours at innermost level)
                 group_num = self.get_bubble_group(contour)
-                bubbles[group_num].append(contour)
-                allbubbles.append(contour)
-                #print(cv.boundingRect(contour)[2])
+                if group_num is not None: 
+                    bubbles[group_num].append(contour)
+                    allbubbles.append(contour)
+                    #print(cv.boundingRect(contour)[2])
             else:
                 nonbubbles.append(contour)
  
