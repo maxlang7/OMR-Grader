@@ -571,7 +571,10 @@ class TestBox:
         mask = cv.bitwise_and(box, box, mask=mask)
         total = cv.countNonZero(mask)
         (x, y, w, h) = cv.boundingRect(bubble)
-        area = math.pi * ((max(w, h) / 2) ** 2)
+        # We were using the max of the contour w and h before and any bubbles colored outside 
+        # the lines didn't have the right total area because their radiuses were too big.
+    
+        area = math.pi * (np.average([self.bubble_height, self.bubble_width])/2 ** 2)
 
         return total / area
 
@@ -595,31 +598,67 @@ class TestBox:
             return bubbled
         elif self.type == 'letter':
             return ''.join([chr(int(c) + 65) for c in bubbled])
+    def find_contour_by_position(self, contours, expected_x, expected_y, bubble_width, bubble_height):
+        box = self.get_box()
+        for contour in contours:
+            x, y, w, h = cv.boundingRect(contour)
+            if ((w > bubble_width/2 and w < bubble_width*2) \
+               or (h > bubble_height/2 and h < bubble_height*2)) \
+               and w*h > bubble_height*bubble_width/3:
+                if abs(x - expected_x) < bubble_width*2 and abs(y - expected_y) < bubble_height/2:
+                    if self.debug_mode:
+                        #show the detected bubbles in yellow.
+                        colorbox = cv.cvtColor(box, cv.COLOR_GRAY2BGR)
+                        cv.drawContours(colorbox, contour, -1, (255,0,0), 3)
+                        cv.imshow('', colorbox)
+                        cv.waitKey()
+                        print(f'rescuing: {x, y, w, h}')
+                    return contour 
+                
+
 
     # This function is for when a bubble gets colored outside the lines and its aspect ratio isn't close enough to 1. 
     # We see if it is in the position that we think a bubble will be and if it is we add it to the list of bubbles. 
-    def rescue_expected_bubbles(self, qgroup, question_bubbles, contours):
+    def rescue_expected_bubbles(self, qgroup, question_bubbles, nonbubblecontours):
         # use the good bubbles in each question to compute the expected Y
         y_values = []
+        supplemented_bubbles = []
+        expected_xs = []
         for contour in question_bubbles:
             x, y, _, _ = cv.boundingRect(contour)
             y_values.append(y)
            
         expected_y = np.median(y_values)
         # use the good bubbles from the whole group to compute the expected X
-        for i in range(len(question_bubbles)): 
+        for i in range(self.bubbles_per_q): 
             x_values = []
             for row in qgroup:
+                row_xs = []
+                for contour in row:
+                    x, y, _, _ = cv.boundingRect(contour)
+                    row_xs.append(x)
+                row_xs.sort()
                 if i < len(row):
-                    x, y, _, _ = cv.boundingRect(row[i])
-                    x_values.append(x)
-            expected_x = np.median(x_values)
-            if self.debug_mode:
-                print(f'expected_x:{expected_x} expected_y:{expected_y}')
+                    x_values.append(row_xs[i])
+            expected_xs.append(np.median(x_values))
+        expected_xs.sort()
+        if self.debug_mode:
+            print(f'expected_xs:{expected_xs} expected_y:{expected_y}')
         # look through all the contours to try to find one around the right position
-        return question_bubbles
-       
-    
+        for i, expected_x in enumerate(expected_xs):
+            foundbubble = False    
+            for contour in question_bubbles:
+                x, _, _, _ = cv.boundingRect(contour)
+                if np.absolute(expected_x - x) < self.bubble_width/2:
+                    supplemented_bubbles.append(contour)
+                    foundbubble = True
+                    break
+            #went through all contours and didn't find one that was around expected x so we try to look at see if it wasn't picked up as a bubble.
+            if foundbubble == False:
+                contour_to_rescue = self.find_contour_by_position(nonbubblecontours, expected_x, expected_y, self.bubble_width, self.bubble_height)
+                if contour_to_rescue is not None:
+                    supplemented_bubbles.append(contour_to_rescue)
+        return supplemented_bubbles
 
     def grade_question(self, question, question_num, group_num, box):
         """
@@ -700,9 +739,10 @@ class TestBox:
                 cntr_x = lambda cntr: cv.boundingRect(cntr)[0]
                 question_sorted = sorted(question, key = cntr_x)
                 # box is passed so we can draw the contours during debugging
-                clean_questions = self.compress_overlapping_bubbles(question_sorted, box)
-                clean_questions = self.rescue_expected_bubbles(qgroup, clean_questions, nonbubbles)
-                self.grade_question(clean_questions, question_num, i, box)
+                clean_question = self.compress_overlapping_bubbles(question_sorted, box)
+                if len(clean_question) < self.bubbles_per_q:
+                    clean_question = self.rescue_expected_bubbles(qgroup, clean_question, nonbubbles)
+                self.grade_question(clean_question, question_num, i, box)
 
     def grade(self):
         """
