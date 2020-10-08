@@ -269,8 +269,6 @@ class TestBox:
             cv.imshow('', colorbox)
             cv.waitKey()
 
-
-
         return bubbles, nonbubbles
 
     def box_contains_bubbles(self, box, threshold,):
@@ -340,7 +338,6 @@ class TestBox:
         for contour in contours:
             if self.is_box(contour, threshold):
                 potential_boxes.append(contour)
-        print(len(potential_boxes)) 
 
         # If is_box doesn't find a box of the right size, accept the page as the box. 
         if len(potential_boxes) == 0:
@@ -452,7 +449,7 @@ class TestBox:
         questions = self.init_questions()
         diff = self.get_question_diff(config)
         offset = self.get_question_offset(config)
-
+    
         for bubble in bubbles:
             question_num = self.get_question_num(bubble, diff, offset)
             questions[question_num].append(bubble)
