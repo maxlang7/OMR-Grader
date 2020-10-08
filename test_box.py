@@ -198,13 +198,16 @@ class TestBox:
             clean_bubbles (list): A list of bubble contours.
         """ 
         clean_bubbles = []
+        if len(bubbles) == 0:
+            return bubbles
         first_bubble = bubbles[0]
         for contour in bubbles:
-            (x, _y, w, h) = cv.boundingRect(contour)
-            (x1, _y1, w1, h1) = cv.boundingRect(first_bubble)
+            (x, y, w, h) = cv.boundingRect(contour)
+            (x1, y1, w1, h1) = cv.boundingRect(first_bubble)
             # it is easier to calculate the non-overlapping cases because there are less of them.
-            if not (x > x1 + w1 or x1 > x + w):
-                """if self.debug_mode:
+            if not (x > x1 + w1 or x1 > x + w) and \
+               not (y > y1 + h1 or y1 > y + h):
+                """if self.debug_mode:j
                     colorbox = cv.cvtColor(box, cv.COLOR_GRAY2BGR)
                     cv.drawContours(colorbox, contour, -1, (0,255,255), 3)
                     cv.imshow('', colorbox)
@@ -649,15 +652,18 @@ class TestBox:
         for i, expected_x in enumerate(expected_xs):
             foundbubble = False    
             for contour in question_bubbles:
-                x, _, _, _ = cv.boundingRect(contour)
+                x, y, w, h = cv.boundingRect(contour)
                 if np.absolute(expected_x - x) < self.bubble_width/2:
                     supplemented_bubbles.append(contour)
                     foundbubble = True
+                    print(f'rescuing bubble: x:{x} y:{y} w:{w} h:{h}')
                     break
             #went through all contours and didn't find one that was around expected x so we try to look at see if it wasn't picked up as a bubble.
             if foundbubble == False:
                 contour_to_rescue = self.find_contour_by_position(nonbubblecontours, expected_x, expected_y, self.bubble_width, self.bubble_height)
                 if contour_to_rescue is not None:
+                    x, y, w, h = cv.boundingRect(contour_to_rescue)
+                    print(f'rescuing contour: x:{x} y:{y} w:{w} h:{h}')
                     supplemented_bubbles.append(contour_to_rescue)
         return supplemented_bubbles
 
@@ -686,8 +692,7 @@ class TestBox:
         if len(question) != self.bubbles_per_q:
             unsure = True
             self.handle_unsure_question(question_num, group_num, box)
-            self.bubbled.append('?')
-            return
+            
 
         bubble_pcts=[]
         for (i, bubble) in enumerate(question):
@@ -704,9 +709,10 @@ class TestBox:
                     #break
         if self.multiple_responses == False:
             # find the darkest bubble in a question
-            darkest_index = np.argmax(bubble_pcts)
-            if bubble_pcts[darkest_index] > .7:
-                bubbled = str(darkest_index)
+            if len(bubble_pcts) > 0:
+                darkest_index = np.argmax(bubble_pcts)
+                if bubble_pcts[darkest_index] > .7:
+                    bubbled = str(darkest_index)
 
         # Add image slice if program running in verbose mode and image slice not
         # already added.
@@ -737,13 +743,19 @@ class TestBox:
                 # Make sure that we have enough bubbles in each question.
                 question_num = j + (i * len(qgroup))
                 #creates a new lambda function that finds the x coordinate of a contour
-                cntr_x = lambda cntr: cv.boundingRect(cntr)[0]
-                question_sorted = sorted(question, key = cntr_x)
+                if self.orientation == "top-to-bottom":
+                    # if its top to bottom we are using y as the thing to sort by
+                    sorter = lambda cntr: cv.boundingRect(cntr)[1]
+                elif self.orientation == "left-to-right":
+                    # if its top to bottom we are using x as the thing to sort by
+                    sorter = lambda cntr: cv.boundingRect(cntr)[0]
+                question_sorted = sorted(question, key = sorter)
                 # box is passed so we can draw the contours during debugging
                 clean_question = self.compress_overlapping_bubbles(question_sorted, box)
-                if len(clean_question) < self.bubbles_per_q:
+                if len(clean_question) < self.bubbles_per_q and self.orientation == "left-to-right" : #and len(clean_question) > 0:
                     clean_question = self.rescue_expected_bubbles(qgroup, clean_question, nonbubbles)
-                self.grade_question(clean_question, question_num, i, box)
+                if len(clean_question) > 0:
+                    self.grade_question(clean_question, question_num, i, box)
 
     def grade(self):
         """
