@@ -578,7 +578,7 @@ class TestBox:
         # We were using the max of the contour w and h before and any bubbles colored outside 
         # the lines didn't have the right total area because their radiuses were too big.
     
-        area = math.pi * (np.average([self.bubble_height, self.bubble_width])/2 ** 2)
+        area = math.pi * ((np.average([self.bubble_height, self.bubble_width])/2) ** 2)
 
         return total / area
 
