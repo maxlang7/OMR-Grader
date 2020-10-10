@@ -1,0 +1,13 @@
+name: grader
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - python=3.8.2
+  - py-opencv
+  - pylint
+  - imutils
+  - rope
+  - click
+
