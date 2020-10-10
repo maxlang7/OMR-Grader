@@ -331,13 +331,15 @@ class TestBox:
         threshold = utils.get_threshold(self.page)
         contours, _ = cv.findContours(threshold, cv.RETR_TREE, 
             cv.CHAIN_APPROX_SIMPLE)
-        contours = sorted(contours, key=cv.contourArea, reverse=True)
         potential_boxes = []
         # Iterate through contours until the correct box is found.
         #try to handle case 1a, where there is one big outer box and smaller ones inside of it and one of the smaller ones actually contains the bubbles.
         for contour in contours:
             if self.is_box(contour, threshold):
                 potential_boxes.append(contour)
+        #sorting potential boxes by y position
+        boundingBoxes = [cv.boundingRect(box) for box in potential_boxes]
+        (potential_boxes, boundingBoxes) = zip(*sorted(zip(potential_boxes, boundingBoxes), key=lambda b:b[1][1]))
 
         # If is_box doesn't find a box of the right size, accept the page as the box. 
         if len(potential_boxes) == 0:
