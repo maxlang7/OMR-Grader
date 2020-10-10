@@ -344,6 +344,8 @@ class TestBox:
         # If is_box doesn't find a box of the right size, accept the page as the box. 
         if len(potential_boxes) == 0:
             raise BoxNotFoundError('No box found on the page')
+        elif len(potential_boxes) < self.box_to_grade:
+            raise BoxNotFoundError('Not enough boxes found on the page')
         else:                
             return utils.get_transform(potential_boxes[self.box_to_grade - 1], threshold)
         
@@ -572,6 +574,7 @@ class TestBox:
         mask = np.zeros(box.shape, dtype='uint8')
         cv.drawContours(mask, [bubble], -1, 255, -1)
         mask = cv.bitwise_and(box, box, mask=mask)
+
         total = cv.countNonZero(mask)
         (x, y, w, h) = cv.boundingRect(bubble)
         # We were using the max of the contour w and h before and any bubbles colored outside 
@@ -655,14 +658,16 @@ class TestBox:
                 if np.absolute(expected_x - x) < self.bubble_width/2:
                     supplemented_bubbles.append(contour)
                     foundbubble = True
-                    print(f'rescuing bubble: x:{x} y:{y} w:{w} h:{h}')
+                    if self.debug_mode:
+                        print(f'rescuing bubble: x:{x} y:{y} w:{w} h:{h}')
                     break
             #went through all contours and didn't find one that was around expected x so we try to look at see if it wasn't picked up as a bubble.
             if foundbubble == False:
                 contour_to_rescue = self.find_contour_by_position(nonbubblecontours, expected_x, expected_y, self.bubble_width, self.bubble_height)
                 if contour_to_rescue is not None:
                     x, y, w, h = cv.boundingRect(contour_to_rescue)
-                    print(f'rescuing contour: x:{x} y:{y} w:{w} h:{h}')
+                    if self.debug_mode:
+                        print(f'rescuing contour: x:{x} y:{y} w:{w} h:{h}')
                     supplemented_bubbles.append(contour_to_rescue)
         return supplemented_bubbles
 
@@ -691,7 +696,7 @@ class TestBox:
         if len(question) != self.bubbles_per_q:
             unsure = True
             self.handle_unsure_question(question_num, group_num, box)
-            
+
 
         bubble_pcts=[]
         for (i, bubble) in enumerate(question):
