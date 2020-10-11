@@ -9,4 +9,6 @@ dependencies:
   - imutils
   - rope
   - click
-
+  - flask
+  - celery
+  - requests
