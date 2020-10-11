@@ -5,9 +5,6 @@ import json
 #database connnection information
 
 
-# sends the graded results to the database
-def carrier_pigeon:
-
 @click.command()
 @click.option('--test', type=click.Choice(['SAT', 'ACT']), default='SAT', help='test to grade', required=True)
 @click.option('--page', type=int, help='page to grade (1, 2, 3 etc.)', required=True)
@@ -18,9 +15,9 @@ def dreadnought(test, page, box, imgpath):
     """ 
     """
     grader = g.Grader()
-    jsonData = grader.grade(imgpath, False, False, 1.0, test, box, page)
+    jsonData = grader.grade(imgpath, False, False, 1.0, test.lower(), box, page)
     data = json.loads(jsonData)
     print(data['answer']['bubbled'])
 
 if __name__ == '__main__':
-    drednought()
+    dreadnought()
