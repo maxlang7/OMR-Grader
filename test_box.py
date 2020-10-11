@@ -70,7 +70,7 @@ class TestBox:
         self.bubbled = []
         self.unsure = []
         self.images = []
-        self.status = 0
+        self.status = 1
         self.error = ''
 
     def get_bubble_group(self, bubble):
@@ -782,8 +782,12 @@ class TestBox:
             bubbles, nonbubbles = self.get_bubbles(gradable_box)
             self.grade_bubbles(bubbles, nonbubbles, gradable_box)
             if len(self.bubbled) == self.num_questions:
+                self.status = 0
+                self.error = ''
                 break
-
+            else:
+                self.error = f"expected {self.num_questions} got {len(self.bubbled)}"
+                self.status =  1
         # Add results of grading to return value.
         data['bubbled'] = self.bubbled
         data['unsure'] = self.unsure
