@@ -20,7 +20,7 @@ database_connection = ""
 #Get SMtp server info. Database connection info. Email from adress for errors with grading.
 
 #uploads parsed test data to database
-def upload_to_database(data):
+def upload_to_database(data, examinfo):
     return True
 
 def download_image(imgurl, imgpath):
@@ -34,9 +34,11 @@ def download_image(imgurl, imgpath):
         return False
 
 @celeryapp.task
-def grade_test(imgurls, test, email ):
+def grade_test(examinfo):
     errors = []
-
+    imgurls = examinfo['Image Urls']
+    test = examinfo['Test']
+    email = examinfo['Email']
     for i, imgurl in enumerate(imgurls):
         page = i + 1
         if page == 3 or page == 5:
@@ -52,7 +54,7 @@ def grade_test(imgurls, test, email ):
                     data = json.loads(jsonData)
                     print(data['answer']['bubbled'])
                     if data['status'] == 0:
-                        upload_to_database(data)
+                        upload_to_database(data['answer']['bubbled'], examinfo)
                     else:
                         errors.append(data['error'])
                 else:
@@ -73,13 +75,20 @@ def send_error_message(email, errors):
 @flaskapp.route('/v1/grader', methods=['POST'])
 def handle_grader_message():
     #TODO: determine and parse POSTed message
+    imageurls = []
     print(flask.request.json)
-    #imgurls = ['http://langhorst.com/sat_test_1a.png']
-    #test = 'SAT'
-    #email = 'max@langhorst.com'
-    #grade_test.delay(imgurls, test, email)
+    for i in [8,9,10,11,12]:
+        imageurls.append(flask.request.json[f'Field{i}_url'])
+    #for jason
+    examinfo = {
+    'First Name': flask.request.json['Field1'],
+    'Last Name': flask.request.json['Field2'], 
+    'Email': flask.request.json['Field5'], 
+    'Test': flask.request.json['Field6'],
+    'Image Urls': imageurls
+    }
+    grade_test.delay(examinfo)
     return flask.Response(status=202)
-
 
 @flaskapp.route('/', methods=['GET'])
 def home():
