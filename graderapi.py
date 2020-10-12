@@ -84,4 +84,4 @@ def handle_grader_message():
 def home():
     return "<h1>Grader API</h1><p.>This site is a API Portal for AutoGrader</p>"
 
-flaskapp.run()
+flaskapp.run(host='0.0.0.0', port=8000)
