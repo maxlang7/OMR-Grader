@@ -16,11 +16,11 @@ flaskapp.config["DEBUG"] = True
 #TODO: add database connection details
 #TODO: set up celery (+rabbit mq) on server
 database_connection = ""
-#TODO Jason questions: wufoo setup account etc, zapier setup (post to http://18.222.170.104/v1/grader),
-#Get SMtp server info. Database connection info. Email from adress for errors with grading.
-
+#TODO Jason questions:Get SMtp server info. Database connection info.
+adminvpt@studypoint.com
 #uploads parsed test data to database
 def upload_to_database(data, examinfo):
+    
     return True
 
 def download_image(imgurl, imgpath):

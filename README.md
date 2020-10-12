@@ -1,56 +1,18 @@
 # OMR Grader
-
 Grader for bubble sheet multiple choice tests using Optical Mark Recognition, Python, and OpenCV. Images should be 300 dpi for maximum accuracy.
 
 ## Getting Started
-
 These instructions will get you a copy of the project up and running on your local machine for development and testing purposes.
 
 ### Prerequisities
+conda env create -f environment.yml. 
 
-* Python 3
-* OpenCV 3.4.3 or later
-* NumPy
-* imutils
-* SciPy (Windows only)
-* ZBar
-* pyzbar
-
-### Installing on Mac/Linux
-To install the libraries, run the following commands:
-```
-$ brew install python3
-$ pip install opencv-python
-$ pip install numpy
-$ pip install imutils
-$ brew install zbar
-$ pip install pyzbar
-```
-
-### Installing on Windows Subsystem for Linux
-To install the libraries, run the following commands:
-```
-$ apt install python3
-$ apt install python3-opencv
-$ apt install python3-pip
-$ pip3 install numpy
-$ pip3 install scipy
-$ pip3 install imutils
-$ sudo apt-get install libzbar-dev libzbar0
-$ pip3 install pyzbar
-```
-## Adding/Configuring new test
-To add a new test, copy one of the test files and change the file path to lead to your image. Make a configuration file by copying one of the configuration files in the config folder. 
 ## Running
-
-`$ python grader.py -i path [-v] [-d] [-s scale]`
-
-### Flags
-* `-i path`: path to image file
-* `[-v]`: enable verbose mode - program will return image slices for every question
-* `[-d]`: enable debug mode - program will display image slices to screen
-* `[-s scale]`: factor to scale image slices by
+There are two types. 
+To run a specific page or box: python dreadnoughtgrader.py --page --imagepath --box --test
+To run a program that listens for a WuFoo form with images: python graderapi.py
 
 ## Acknowledgements
 * Adrian Rosebrock's tutorial "Bubble sheet multiple choice scanner and test grader using OMR, Python, OpenCV"
 * John Fremlin's tutorial "Rotating an image with OpenCV and Python"
+* Bthicks's OMR-Grader GitHub Repository (https://github.com/bthicks/OMR-Grader)

@@ -1,12 +1,24 @@
+import unittest
+import sys
+sys.path.append("/Users/maxanna/Documents/AutoGrader/OMR-Grader")
 import grader as g
 import json
 import os
-import unittest
 
 
-class CalQuizTest(unittest.TestCase):
-
+class TestCalQuiz(unittest.TestCase):
+    
     def test_quiz_1_01(self):
+        grader = g.Grader()
+        jsonData = grader.grade('test/images/6q-01.png', True, True, 1.0)
+        data = json.loads(jsonData)
+
+        self.assertEqual(data['answer']['bubbled'], ['D', 'B', '-', '-', '-', '-'])
+        self.assertEqual(data['version']['bubbled'], ['-'])
+        self.assertEqual(data['id']['bubbled'], ['0', '1', '5', '5', '9', '6', '2', '0', '0'])
+
+"""  
+   def test_quiz_1_01(self):
         grader = g.Grader()
         jsonData = grader.grade('images/6q/set_1/calQuiz_Page_01.png', False, False, 1.0)
         data = json.loads(jsonData)
@@ -778,9 +790,11 @@ class CalQuizTest(unittest.TestCase):
 
         self.assertEqual(data['answer']['bubbled'], ['C', 'B', '-', '-', '-', '-'])
         self.assertEqual(data['version']['bubbled'], ['-'])
-        self.assertEqual(data['id']['bubbled'], ['-', '-', '-', '-', '-', '-', '-', '-', '-'])
+        self.assertEqual(data['id']['bubbled'], ['-', '-', '-', '-', '-', '-', '-', '-', '-']) 
+"""
 
 
 if __name__ == '__main__':
-    suite = unittest.TestLoader().loadTestsFromTestCase(CalQuizTest)
-    unittest.TextTestRunner(verbosity=2).run(suite)
+    unittest.main()
+    #suite = unittest.TestLoader().loadTestsFromTestCase(CalQuizTest)
+   #unittest.TextTestRunner(verbosity=2).run(suite)

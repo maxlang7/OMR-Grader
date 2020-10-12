@@ -1,8 +1,8 @@
 {
     "page_width": 565.06,
     "page_height": 259.0,
-    "bubble_width": 10.8,
-    "bubble_height": 10.8,
+    "bubble_width": 4.0,
+    "bubble_height": 4.0,
     "qr_x": 23.79,
     "qr_y": 136.88,
     "x_error": 10.8,
@@ -37,42 +37,7 @@
                     "y_max": 227.14                    
                 }
             ]
-        },
-        {
-            "name": "version",
-            "type": "letter",
-            "orientation": "left-to-right",
-            "multiple_responses": true,
-            "x": 171.83,
-            "y": 82.99,
-            "rows": 1,
-            "columns": 5,
-            "groups": [
-                {
-                    "x_min": 208.25,
-                    "x_max": 293.17,
-                    "y_min": 96.12,
-                    "y_max": 106.92
-                }
-            ]
-        },
-        {
-            "name": "id",
-            "type": "number",
-            "orientation": "top-to-bottom",
-            "multiple_responses": false,
-            "x": 343.03,
-            "y": 34.89,
-            "rows": 10,
-            "columns": 9,
-            "groups": [
-                {
-                    "x_min": 348.53,
-                    "x_max": 524.46,
-                    "y_min": 39.43,
-                    "y_max": 177.54
-                }
-            ]
         }
+       
     ]
 }
