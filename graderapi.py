@@ -73,11 +73,12 @@ def send_error_message(email, errors):
 @flaskapp.route('/v1/grader', methods=['POST'])
 def handle_grader_message():
     #TODO: determine and parse POSTed message
-    imgurls = ['http://langhorst.com/sat_test_1a.png']
-    test = 'SAT'
-    email = 'max@langhorst.com'
-    grade_test.delay(imgurls, test, email)
-    return False
+    print(flask.request.json)
+    #imgurls = ['http://langhorst.com/sat_test_1a.png']
+    #test = 'SAT'
+    #email = 'max@langhorst.com'
+    #grade_test.delay(imgurls, test, email)
+    return flask.Response(status=202)
 
 
 @flaskapp.route('/', methods=['GET'])
