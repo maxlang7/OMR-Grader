@@ -10,7 +10,7 @@ import grader as g
 import json
 from celery import Celery
 flaskapp = flask.Flask(__name__)
-celeryapp = Celery('tasks', broker='pyampq://guest@localhost//')
+celeryapp = Celery('tasks', broker='pyamqp://guest@localhost//')
 flaskapp.config["DEBUG"] = True
 
 #TODO: add database connection details
