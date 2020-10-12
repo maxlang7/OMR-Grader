@@ -1,0 +1,3 @@
+User_Alias    OPS_USERS = {{ sudoersd_users|join(', ') }}
+Cmnd_Alias    OPS_CMDS = {{ sudoersd_commands|join(', ') }}
+OPS_USERS    ALL=NOPASSWD:OPS_CMDS

@@ -1,0 +1,19 @@
+[Unit]
+Description=celery job runner service
+After=network.target
+
+[Service]
+# Foreground process (do not use --daemon in ExecStart or config.rb)
+Type=simple
+
+# Preferably configure a non-privileged user
+User=deploy
+
+WorkingDirectory={{app_path}}
+ExecStart=/bin/bash -lc '/home/deploy/miniconda3/envs/grader/bin/celery -A graderapi worker --loglevel=info'
+
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+

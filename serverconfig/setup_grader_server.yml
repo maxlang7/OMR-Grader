@@ -1,0 +1,145 @@
+---
+- hosts: awsgrader
+  remote_user: ubuntu
+  gather_facts: True
+  become_user: root
+  become: true
+  vars:
+    ubuntu_release_name: focal
+    sudoersd_commands:
+      - /bin/systemctl restart uwsgi   
+      - /bin/systemctl restart celery
+      - /bin/systemctl restart rabbitmq
+    sudoersd_users:
+      - deploy
+
+    app_name: grader
+    app_path: /var/www/{{ app_name }}/current
+    nginx_config_path: /etc/nginx
+
+  tasks:
+  - name: add deploy
+    user: 
+      name: deploy
+      state: present
+  - name: access to deploy user by devs
+    authorized_key:
+      user: deploy
+      key: ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDlccIhVma1zm2Iqn0LI6UPSG1Rp4HQm2jlOILxvqdfnK/4Z5SEMdDC3nGZVvV665z7dK+xeWZGzb2RCKggeeFwMlAdWe+sKYEDMwgOtw6MMfu0TUx3ZQs/wUJhEuW78ap2/2Fe9pO4I6N5VxXMSrwdVWD0ZT9AMq1hPZJClNSuzorK0uBWIVCO6XGHq4807SyOH5iUh1jWYOVnBESm9Sm6W9cqsy0jKgL1urawP+MCeVC2ODCGwd3zS+XqW8g4ZVAIX9xUassMiKy+DB+64BF9Z5V60MPpPv3BQaWPNRroIAtlpDXvfBCmExf7Fe6mLcewXa401gjvyELO2Vw8f707 maxanna@Maxs-Air.home.langhorst.com
+      state: present
+  - name: add packages
+    apt: 
+     name:
+       - git
+       - libgl1-mesa-glx
+       - nginx
+       - nullmailer
+       - rabbitmq-server
+  - name: add deploy directory
+    file: 
+      path: "{{app_path}}"
+      state: directory
+      owner: www-data
+      group: deploy
+      mode: 0775
+  - name: Install Conda
+    block:
+    - name: Download Miniconda
+      get_url:
+        url: https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
+        dest: /tmp/install-miniconda.sh
+        checksum: sha256:879457af6a0bf5b34b48c12de31d4df0ee2f06a8e68768e5758c3293b2daf688
+        mode: 0555
+    - name: Create conda folder
+      file:
+        path: ~/miniconda3
+        state: directory
+        mode: 755
+        owner: deploy
+        recurse: yes
+    - name: Run the installer
+      become: True
+      become_user: deploy
+      shell: /tmp/install-miniconda.sh -b -u -p ~/miniconda3
+    - name: Remove the installer
+      file:
+        state: absent
+        path: /tmp/install-miniconda.sh
+    - name: Add miniconda bin to path
+      become: True
+      become_user: deploy
+      shell: echo 'export PATH=~/miniconda3/bin:$PATH' >> ~/.profile
+    - name: initialize miniconda
+      become: True
+      become_user: deploy
+      shell: bash -lc 'conda init bash'
+  - name: add email for admin user
+    copy:
+      content: |
+        max@langhorst.com
+      dest: /etc/nullmailer/adminaddr
+  - name: configure remote mail server
+    copy:
+      content: |
+        smtp.studypoint.com
+      dest: /etc/nullmailer/remotes
+  - name: install nginx config
+    template:
+      src: nginx.conf
+      dest: "{{ nginx_config_path }}/sites-available/{{ app_name }}"
+      owner: www-data
+  - name: remove default site
+    file:
+      path: "{{ nginx_config_path }}/sites-enabled/default"
+      state: absent
+  - name: link nginx config to enabled
+    file:
+      src: "{{ nginx_config_path }}/sites-available/{{ app_name }}"
+      dest: "{{ nginx_config_path }}/sites-enabled/{{ app_name }}"
+      state: link
+      owner: www-data
+  - name: Install uwsgi service
+    template: 
+      src: uwsgi.service.j2
+      dest: /etc/systemd/system/uwsgi.service
+      owner: deploy
+      group: root
+  - name: clone the grader git repo
+    become: True
+    become_user: deploy
+    git: 
+      repo: 'https://github.com/maxlang7/SAT-ACT-Grader'
+      dest: '{{app_path}}'
+      force: True
+  - name: setup conda env
+    become: True
+    become_user: deploy
+    shell: bash -lc 'conda env create -f {{app_path}}/environment.yml'
+  - name: start uwsgi on boot
+    systemd:
+      daemon_reload: true
+      name: uwsgi
+      enabled: yes
+      state: started
+  - name: Install uwsgi service
+    template: 
+      src: celery.service.j2
+      dest: /etc/systemd/system/celery.service
+      owner: deploy
+      group: root
+  - name: start celery on boot
+    systemd:
+      daemon_reload: true
+      name: celery
+      enabled: yes
+      state: started
+  - name: add sudoers file
+    template: 
+      src: sudoers.d.j2
+      dest: /etc/sudoers.d/deploy_commands
+      owner: root
+  - name: restart nginx
+    service:
+      name: nginx
+      state: restarted
+    
