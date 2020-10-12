@@ -6,6 +6,12 @@ import numpy as np
 
 import utils
 
+class Error(Exception):
+    pass
+
+class BoxNotFoundError(Error):
+    def __init__(self, message):
+        self.message = message
 
 class TestBox:
 
@@ -48,18 +54,23 @@ class TestBox:
         self.bubble_height = config['bubble_height']
         self.x_error = config['x_error']
         self.y_error = config['y_error']
-
+        self.min_bubbles_per_box = config['min_bubbles_per_box']
+        self.box_to_grade = config['box_to_grade']
+        self.num_questions = config['num_questions']
         # Set number of bubbles per question based on box orientation.
         if self.orientation == 'left-to-right':
             self.bubbles_per_q = self.columns
         elif self.orientation == 'top-to-bottom':
             self.bubbles_per_q = self.rows
 
+        self.init_result_structures()
+
+    def init_result_structures(self):
         # Return values.
         self.bubbled = []
         self.unsure = []
         self.images = []
-        self.status = 0
+        self.status = 1
         self.error = ''
 
     def get_bubble_group(self, bubble):
@@ -88,7 +99,54 @@ class TestBox:
                 y <= group['y_max'] + self.y_error):
                 return i
 
-        return -1
+        return None
+    
+    def erase_lines(self, box):
+        """
+        Erases lines from the passed image returning an image without any lines
+
+        Args:
+            (numpy.ndarray): An ndarray representing the image containing lines that need to be erased
+
+        Returns: 
+            (numpy.ndarray): An ndarray representing the image without lines
+            
+        """
+        low_threshold = 5
+        high_threshold = 200
+        edges = cv.Canny(box, low_threshold, high_threshold)
+        rho = .8  # distance resolution in pixels of the Hough grid
+        theta = np.pi / 600  # angular resolution in radians of the Hough grid
+        threshold = 90   # minimum number of votes (intersections in Hough grid cell)
+        min_line_length = 10  # minimum number of pixels making up a line
+        max_line_gap = 2  # maximum gap in pixels between connectable line segments
+        line_image = np.copy(box) * 0  # creating a blank to draw lines on
+        line_image = cv.cvtColor(line_image, cv.COLOR_GRAY2BGR)
+
+        #find lines on an image
+        lines = cv.HoughLinesP(edges, rho, theta, threshold, np.array([]),
+                    min_line_length, max_line_gap)
+        if lines is None:
+            lines = []
+            print("No Lines Detected in Image")
+        
+        for line in lines:
+            for x1,y1,x2,y2 in line:
+                cv.line(line_image,(x1,y1),(x2,y2),(255,0,0),2)
+        #remove found lines from image
+        if self.debug_mode:
+            cv.imshow('', edges)
+            cv.waitKey()
+            box_lines = cv.addWeighted(cv.cvtColor(box, cv.COLOR_GRAY2BGR), 0.8, line_image, 1, 0)
+            #lines_no_edges = cv.subtract(cv.cvtColor(line_image, cv.COLOR_BGR2GRAY), box)
+            cv.imshow('', box_lines)
+            cv.waitKey()
+            _, thresholded_lines = cv.threshold(cv.cvtColor(line_image, cv.COLOR_BGR2GRAY), thresh=10, maxval=255, type=cv.THRESH_BINARY) 
+            box[thresholded_lines==255] = 0
+            #box = cv.bilateralFilter(box,3,50,50)
+            cv.imshow('', box)
+            cv.waitKey()
+        return box
 
     def is_bubble(self, contour):
         """
@@ -106,6 +164,10 @@ class TestBox:
         """
         (x, y, w, h) = cv.boundingRect(contour)
         aspect_ratio = w / float(h)
+        min_aspect_ratio = 0.8
+        max_aspect_ratio = 1.3
+
+
 
         # Add offsets to get coordinates in relation to the whole test image 
         # instead of in relation to the test box.
@@ -113,22 +175,57 @@ class TestBox:
         y += self.y
 
         # Ignore contour if not of sufficient width or height, or not circular.
-        if (w < self.bubble_width * 0.9 or 
-            h < self.bubble_height * 0.9 or
-            aspect_ratio < 0.7 or
-            aspect_ratio > 1.3):
+        if (w < self.bubble_width * 0.8 or 
+            h < self.bubble_height * 0.8 or
+            w > self.bubble_width * 2 or 
+            h > self.bubble_height * 2 or
+            aspect_ratio < min_aspect_ratio or
+            aspect_ratio > max_aspect_ratio):
+            if self.debug_mode:
+                if aspect_ratio > min_aspect_ratio and aspect_ratio < max_aspect_ratio and w > 15:
+                    print(f"not considered a bubble because width is {w:.2f} not between, {(self.bubble_width * 0.8):.2f}, {(self.bubble_width * 2.0):.2f}, or height is {h:.2f} not between, {(self.bubble_height * 0.8):.2f}, {(self.bubble_height * 2.0):.2f}, or aspect ratio is {aspect_ratio:.2f} not between {min_aspect_ratio}, {max_aspect_ratio}")
             return False
 
-        # If the contour fits the coordinates of a bubble group, add it to that
-        # group.
-        for (i, group) in enumerate(self.groups):
-            if (x >= group['x_min'] - self.x_error and
-                x <= group['x_max'] + self.x_error and
-                y >= group['y_min'] - self.y_error and
-                y <= group['y_max'] + self.y_error):
-                return True
+        return True
+    def compress_overlapping_bubbles(self, bubbles, box):
+        """
+        Finds Bubbles that are overlapping and uses the bigger one.
 
-        return False
+        Args:
+            bubbles (list): A list of bubble contours.
+        
+        Returns:
+            clean_bubbles (list): A list of bubble contours.
+        """ 
+        clean_bubbles = []
+        if len(bubbles) == 0:
+            return bubbles
+        first_bubble = bubbles[0]
+        for contour in bubbles:
+            (x, y, w, h) = cv.boundingRect(contour)
+            (x1, y1, w1, h1) = cv.boundingRect(first_bubble)
+            # it is easier to calculate the non-overlapping cases because there are less of them.
+            if not (x > x1 + w1 or x1 > x + w) and \
+               not (y > y1 + h1 or y1 > y + h):
+                """if self.debug_mode:j
+                    colorbox = cv.cvtColor(box, cv.COLOR_GRAY2BGR)
+                    cv.drawContours(colorbox, contour, -1, (0,255,255), 3)
+                    cv.imshow('', colorbox)
+                    cv.waitKey()"""
+                if w * h >= w1 * h1:
+                    clean_bubbles.append(contour)
+                    first_bubble = contour
+            else:
+                clean_bubbles.append(contour)
+                first_bubble = contour
+                """if self.debug_mode:
+                    colorbox = cv.cvtColor(box, cv.COLOR_GRAY2BGR)
+                    cv.drawContours(colorbox, contour, -1, (0,255,0), 3)
+                    cv.imshow('', colorbox)
+                    cv.waitKey()        """
+        
+        return clean_bubbles    
+
 
     def get_bubbles(self, box):
         """
@@ -143,10 +240,12 @@ class TestBox:
 
         """
         # Find bubbles in box.
-        contours, _ = cv.findContours(box, cv.RETR_EXTERNAL, 
+        contours, _ = cv.findContours(box, cv.RETR_TREE, 
             cv.CHAIN_APPROX_SIMPLE)
-
+    
         # Init empty list for each group of bubbles.
+        allbubbles = []
+        nonbubbles = []
         bubbles = []
         for _ in range(len(self.groups)):
             bubbles.append([])
@@ -154,21 +253,49 @@ class TestBox:
         # Check if contour is bubble; if it is, add to its appropriate group.
         for contour in contours:
             if self.is_bubble(contour):
+               # what is the contour hierachy (skip contours at innermost level)
                 group_num = self.get_bubble_group(contour)
-                bubbles[group_num].append(contour)
+                if group_num is not None: 
+                    bubbles[group_num].append(contour)
+                    allbubbles.append(contour)
+                    #print(cv.boundingRect(contour)[2])
+            else:
+                nonbubbles.append(contour)
+ 
+        if self.debug_mode:
+            #show the detected bubbles in yellow.
+            colorbox = cv.cvtColor(box, cv.COLOR_GRAY2BGR)
+            cv.drawContours(colorbox, allbubbles, -1, (0,255,255), 3)
+            cv.imshow('', colorbox)
+            cv.waitKey()
 
-        return bubbles
+        return bubbles, nonbubbles
 
-    def box_contains_bubbles(self, box, threshold):
+    def box_contains_bubbles(self, box, threshold,):
+        (x, y, w, h) = cv.boundingRect(box)
+        bubbles = []
+        # Some boxes are too small and can't be 4-point-transformed so they aren't gonna be the one we want anyway.
+        
+        if w < 100:
+            return False
+        im = threshold[y:y+h, x:x+w]
+        im = cv.resize(im, None, fx=self.scale, fy=self.scale)
+        if self.debug_mode:
+            cv.imshow('', im)
+            cv.waitKey()
+        #print("box", x, y, w, h)
         im = utils.get_transform(box, threshold)
         contours, _ = cv.findContours(im, cv.RETR_EXTERNAL, 
             cv.CHAIN_APPROX_SIMPLE)
 
         for contour in contours:
             if self.is_bubble(contour):
-                return True
+                 bubbles.append(contour)
 
-        return False
+        if len(bubbles) < self.min_bubbles_per_box:
+            return False
+        else:
+            return True
 
     def is_box(self, contour, threshold):
         """
@@ -183,10 +310,9 @@ class TestBox:
             bool: True for success, False otherwise.
 
         """
-        (x, y, _, _) = cv.boundingRect(contour)
-
-        if ((self.x - self.x_error <= x <= self.x + self.x_error) and 
-            (self.y - self.y_error <= y <= self.y + self.y_error) and
+        (_, _, w, h) = cv.boundingRect(contour)
+        threshh, threshw = threshold.shape
+        if (w*h >= .1 * threshh * threshw and #eliminating possible boxes based on area so we get the right box to grade.
             self.box_contains_bubbles(contour, threshold)):
             return True
         else:
@@ -205,15 +331,24 @@ class TestBox:
         threshold = utils.get_threshold(self.page)
         contours, _ = cv.findContours(threshold, cv.RETR_TREE, 
             cv.CHAIN_APPROX_SIMPLE)
-        contours = sorted(contours, key=cv.contourArea, reverse=True)
-
+        potential_boxes = []
         # Iterate through contours until the correct box is found.
+        #try to handle case 1a, where there is one big outer box and smaller ones inside of it and one of the smaller ones actually contains the bubbles.
         for contour in contours:
             if self.is_box(contour, threshold):
-                return utils.get_transform(contour, threshold)
+                potential_boxes.append(contour)
+        #sorting potential boxes by y position
+        boundingBoxes = [cv.boundingRect(box) for box in potential_boxes]
+        (potential_boxes, boundingBoxes) = zip(*sorted(zip(potential_boxes, boundingBoxes), key=lambda b:b[1][1]))
 
-        return None
-
+        # If is_box doesn't find a box of the right size, accept the page as the box. 
+        if len(potential_boxes) == 0:
+            raise BoxNotFoundError('No box found on the page')
+        elif len(potential_boxes) < self.box_to_grade:
+            raise BoxNotFoundError('Not enough boxes found on the page')
+        else:                
+            return utils.get_transform(potential_boxes[self.box_to_grade - 1], threshold)
+        
     def init_questions(self):
         """
         Initialize and return a list of empty lists based on the number of
@@ -294,6 +429,10 @@ class TestBox:
 
         (x, y, _, _) = cv.boundingRect(bubble)
 
+        if self.debug_mode:
+            print(f"qnum {round((y - offset) / diff)}= bubble y: {y} - offset {offset} / diff: {diff}")
+
+
         if self.orientation == 'left-to-right':
             return round((y - offset) / diff)
         elif self.orientation == 'top-to-bottom':
@@ -314,14 +453,14 @@ class TestBox:
         questions = self.init_questions()
         diff = self.get_question_diff(config)
         offset = self.get_question_offset(config)
-
+    
         for bubble in bubbles:
             question_num = self.get_question_num(bubble, diff, offset)
             questions[question_num].append(bubble)
 
         return questions
 
-    def get_image_coords(self, question_num, group_num, config):
+    def get_image_coords(self, question_num, group_num, group_config):
         """
         Finds and returns the coordinates of a question in the test image.
 
@@ -338,21 +477,21 @@ class TestBox:
             y_max (float): Maximum y coordinate.
 
         """
-        diff = self.get_question_diff(config)
-        offset = self.get_question_offset(config)
+        diff = self.get_question_diff(group_config)
+        offset = self.get_question_offset(group_config)
 
         if self.orientation == 'left-to-right':
             question_num = question_num - (group_num * self.rows) - 1
-            x_min = max(config['x_min'] - self.x - self.x_error, 0)
-            x_max = config['x_max'] - self.x + self.x_error
+            x_min = max(group_config['x_min'] - self.x - self.x_error, 0)
+            x_max = group_config['x_max'] - self.x + self.x_error
             y_min = max((diff * question_num) + offset - (self.y_error / 2), 0)
             y_max = y_min + self.bubble_height + self.y_error
         elif self. orientation == 'top-to-bottom':
             question_num = question_num - (group_num * self.columns) - 1
             x_min = max((diff * question_num) + offset - (self.x_error / 2), 0)
             x_max = x_min + self.bubble_width + self.x_error
-            y_min = max(config['y_min'] - self.y - self.y_error, 0)
-            y_max = config['y_max'] - self.y + self.y_error
+            y_min = max(group_config['y_min'] - self.y - self.y_error, 0)
+            y_max = group_config['y_max'] - self.y + self.y_error
 
         return x_min, x_max, y_min, y_max
 
@@ -374,7 +513,10 @@ class TestBox:
         config = self.groups[group_num]
         (x_min, x_max, y_min, y_max) = self.get_image_coords(question_num, 
             group_num, config)
-
+        
+        if self.debug_mode:
+            print(f"image slice coordinates q{question_num} : {round(x_min,1)}-{round(x_max,1)}, {round(y_min,1)}-{round(y_max,1)} ")
+        
         # Crop image and scale.
         im = box[int(y_min): int(y_max), int(x_min): int(x_max)]
         im = cv.resize(im, None, fx=self.scale, fy=self.scale)
@@ -432,9 +574,13 @@ class TestBox:
         mask = np.zeros(box.shape, dtype='uint8')
         cv.drawContours(mask, [bubble], -1, 255, -1)
         mask = cv.bitwise_and(box, box, mask=mask)
+
         total = cv.countNonZero(mask)
         (x, y, w, h) = cv.boundingRect(bubble)
-        area = math.pi * ((min(w, h) / 2) ** 2)
+        # We were using the max of the contour w and h before and any bubbles colored outside 
+        # the lines didn't have the right total area because their radiuses were too big.
+    
+        area = math.pi * ((np.average([self.bubble_height, self.bubble_width])/2) ** 2)
 
         return total / area
 
@@ -458,6 +604,72 @@ class TestBox:
             return bubbled
         elif self.type == 'letter':
             return ''.join([chr(int(c) + 65) for c in bubbled])
+    def find_contour_by_position(self, contours, expected_x, expected_y, bubble_width, bubble_height):
+        box = self.get_box()
+        for contour in contours:
+            x, y, w, h = cv.boundingRect(contour)
+            if ((w > bubble_width/2 and w < bubble_width*2) \
+               or (h > bubble_height/2 and h < bubble_height*2)) \
+               and w*h > bubble_height*bubble_width/3:
+                if abs(x - expected_x) < bubble_width*2 and abs(y - expected_y) < bubble_height/2:
+                    if self.debug_mode:
+                        #show the detected bubbles in yellow.
+                        colorbox = cv.cvtColor(box, cv.COLOR_GRAY2BGR)
+                        cv.drawContours(colorbox, contour, -1, (255,0,0), 3)
+                        cv.imshow('', colorbox)
+                        cv.waitKey()
+                        print(f'rescuing: {x, y, w, h}')
+                    return contour 
+                
+
+
+    # This function is for when a bubble gets colored outside the lines and its aspect ratio isn't close enough to 1. 
+    # We see if it is in the position that we think a bubble will be and if it is we add it to the list of bubbles. 
+    def rescue_expected_bubbles(self, qgroup, question_bubbles, nonbubblecontours):
+        # use the good bubbles in each question to compute the expected Y
+        y_values = []
+        supplemented_bubbles = []
+        expected_xs = []
+        for contour in question_bubbles:
+            x, y, _, _ = cv.boundingRect(contour)
+            y_values.append(y)
+           
+        expected_y = np.median(y_values)
+        # use the good bubbles from the whole group to compute the expected X
+        for i in range(self.bubbles_per_q): 
+            x_values = []
+            for row in qgroup:
+                row_xs = []
+                for contour in row:
+                    x, y, _, _ = cv.boundingRect(contour)
+                    row_xs.append(x)
+                row_xs.sort()
+                if i < len(row):
+                    x_values.append(row_xs[i])
+            expected_xs.append(np.median(x_values))
+        expected_xs.sort()
+        if self.debug_mode:
+            print(f'expected_xs:{expected_xs} expected_y:{expected_y}')
+        # look through all the contours to try to find one around the right position
+        for i, expected_x in enumerate(expected_xs):
+            foundbubble = False    
+            for contour in question_bubbles:
+                x, y, w, h = cv.boundingRect(contour)
+                if np.absolute(expected_x - x) < self.bubble_width/2:
+                    supplemented_bubbles.append(contour)
+                    foundbubble = True
+                    if self.debug_mode:
+                        print(f'rescuing bubble: x:{x} y:{y} w:{w} h:{h}')
+                    break
+            #went through all contours and didn't find one that was around expected x so we try to look at see if it wasn't picked up as a bubble.
+            if foundbubble == False:
+                contour_to_rescue = self.find_contour_by_position(nonbubblecontours, expected_x, expected_y, self.bubble_width, self.bubble_height)
+                if contour_to_rescue is not None:
+                    x, y, w, h = cv.boundingRect(contour_to_rescue)
+                    if self.debug_mode:
+                        print(f'rescuing contour: x:{x} y:{y} w:{w} h:{h}')
+                    supplemented_bubbles.append(contour_to_rescue)
+        return supplemented_bubbles
 
     def grade_question(self, question, question_num, group_num, box):
         """
@@ -475,30 +687,34 @@ class TestBox:
         unsure = False
 
         # If question is missing bubbles, mark as unsure.
+
+        if self.debug_mode:
+            colorbox = cv.cvtColor(box, cv.COLOR_GRAY2BGR)
+            cv.drawContours(colorbox, question, -1, (0,255,0), 3)
+            cv.imshow('', colorbox)
+            cv.waitKey()
         if len(question) != self.bubbles_per_q:
             unsure = True
             self.handle_unsure_question(question_num, group_num, box)
-            self.bubbled.append('?')
-            return
 
+
+        bubble_pcts=[]
         for (i, bubble) in enumerate(question):
-                percent_marked = self.get_percent_marked(bubble, box)
-
-                # If ~50% bubbled, count as marked.
-                if percent_marked > 0.8:
-                    bubbled += str(i)
-                # Count as unsure.
-                elif percent_marked > 0.75:
-                    unsure = True
-                    self.handle_unsure_question(question_num, group_num, box)
-                    bubbled = '?'
-                    break
-
-        # If multiple responses found for a single response question, mark as
-        # unsure.
-        if len(bubbled) > 1 and self.multiple_responses == False:
-            self.handle_unsure_question(question_num, group_num, box)
-            bubbled = '?'
+            percent_marked = self.get_percent_marked(bubble, box)
+            bubble_pcts.append(percent_marked)
+            if percent_marked > 0.8:
+                bubbled += str(i)
+            elif percent_marked > 0.65 and unsure == False:
+                unsure = True
+                self.handle_unsure_question(question_num, group_num, box)
+                #bubbled = '?'
+                #break
+        if self.multiple_responses == False:
+            # find the darkest bubble in a question
+            if len(bubble_pcts) > 0:
+                darkest_index = np.argmax(bubble_pcts)
+                if bubble_pcts[darkest_index] > .8:
+                    bubbled = str(darkest_index)
 
         # Add image slice if program running in verbose mode and image slice not
         # already added.
@@ -507,27 +723,41 @@ class TestBox:
 
         self.bubbled.append(self.format_answer(bubbled))
 
-    def grade_bubbles(self, bubbles, box):
+    def grade_bubbles(self, bubbles, nonbubbles, box):
         """
         Grades a list of bubbles from the test box.
 
         Args:
             bubbles (list): A list of lists, where each list is a group of 
                 bubble contours.
+            nonbubbles (list): A list of the contours that weren't determined to be bubbles.
             box (numpy.ndarray): An ndarray representing the test box.
 
         """
         for (i, group) in enumerate(bubbles):
             # Split a group of bubbles by question.
-            group = self.group_by_question(group, self.groups[i])
-
+            qgroup = self.group_by_question(group, self.groups[i])
+            # if your qgroup only contains one thing, it is probably not a group, so we should filter it out
+            if len(qgroup) <= 1:
+                continue
             # Sort bubbles in each question based on box orientation then grade.
-            for (j, question) in enumerate(group, 1):
-                question_num = j + (i * len(group))
-                question, _ = cutils.sort_contours(question,
-                    method=self.orientation)
-
-                self.grade_question(question, question_num, i, box)
+            for (j, question) in enumerate(qgroup, 1):
+                # Make sure that we have enough bubbles in each question.
+                question_num = j + (i * len(qgroup))
+                #creates a new lambda function that finds the x coordinate of a contour
+                if self.orientation == "top-to-bottom":
+                    # if its top to bottom we are using y as the thing to sort by
+                    sorter = lambda cntr: cv.boundingRect(cntr)[1]
+                elif self.orientation == "left-to-right":
+                    # if its top to bottom we are using x as the thing to sort by
+                    sorter = lambda cntr: cv.boundingRect(cntr)[0]
+                question_sorted = sorted(question, key = sorter)
+                # box is passed so we can draw the contours during debugging
+                clean_question = self.compress_overlapping_bubbles(question_sorted, box)
+                if len(clean_question) < self.bubbles_per_q and self.orientation == "left-to-right" : #and len(clean_question) > 0:
+                    clean_question = self.rescue_expected_bubbles(qgroup, clean_question, nonbubbles)
+                if len(clean_question) > 0:
+                    self.grade_question(clean_question, question_num, i, box)
 
     def grade(self):
         """
@@ -542,12 +772,22 @@ class TestBox:
             'status': 0,
             'error': ''
         }
-
         # Find box, find bubbles in box, then grade bubbles.
-        box = self.get_box()
-        bubbles = self.get_bubbles(box)
-        self.grade_bubbles(bubbles, box)
+        gradable_box = self.get_box()
+        for (treatment) in enumerate(['','erase_lines']):
+            self.init_result_structures()
+            if treatment == 'erase_lines':
+                gradable_box = self.erase_lines(gradable_box)
 
+            bubbles, nonbubbles = self.get_bubbles(gradable_box)
+            self.grade_bubbles(bubbles, nonbubbles, gradable_box)
+            if len(self.bubbled) == self.num_questions:
+                self.status = 0
+                self.error = ''
+                break
+            else:
+                self.error = f"expected {self.num_questions} got {len(self.bubbled)}"
+                self.status =  1
         # Add results of grading to return value.
         data['bubbled'] = self.bubbled
         data['unsure'] = self.unsure

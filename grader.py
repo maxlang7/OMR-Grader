@@ -6,7 +6,6 @@ import re
 
 import cv2 as cv
 from imutils.perspective import four_point_transform
-import pyzbar.pyzbar as pyzbar
 
 import config_parser
 from test_box import TestBox
@@ -17,7 +16,7 @@ class Grader:
 
     def find_page(self, im):
         """
-        Finds and returns the test box within a given image.
+        Finds and returns the outside box that contains the entire test. Will use this to scale the given image.
 
         Args:
             im (numpy.ndarray): An ndarray representing the entire test image.
@@ -51,30 +50,11 @@ class Grader:
         # Apply perspective transform to get top down view of page.
         return four_point_transform(imgray, page.reshape(4, 2))
 
-    def decode_qr(self, im): 
-        """
-        Finds and decodes the QR code inside of a test image.
-
-        Args:
-            im (numpy.ndarray): An ndarray representing the entire test image.
-
-        Returns:
-            pyzbar.Decoded: A decoded QR code object.
-
-        """
-        # Increase image contrast to better identify QR code.
-        _, new_page = cv.threshold(im, 127, 255, cv.THRESH_BINARY)
-        decoded_objects = pyzbar.decode(new_page)
-
-        if not decoded_objects:
-            return None
-        else:
-            return decoded_objects[0]
-
     def image_is_upright(self, page, config):
         """
-        Checks if an image is upright, based on the coordinates of the QR code
-        in the image.
+      This function is a placeholder if you ever need to make sure an image is upright. In most cases it is pretty much useless.
+
+
 
         Args:
             page (numpy.ndarray): An ndarray representing the test image.
@@ -82,19 +62,10 @@ class Grader:
 
         Returns:
             bool: True if image is upright, False otherwise.
+        
 
         """
-        qr_code = self.decode_qr(page)
-        qr_x = qr_code.rect.left
-        qr_y = qr_code.rect.top
-        x_error = config['x_error']
-        y_error = config['y_error']
-
-        if ((config['qr_x'] - x_error <= qr_x <= config['qr_x'] + x_error) and 
-                (config['qr_y'] - y_error <= qr_y <= config['qr_y'] + y_error)):
-            return True
-        else:
-            return False
+        return True
 
     def upright_image(self, page, config):
         """
@@ -166,7 +137,7 @@ class Grader:
         
         self.scale_config_r(config, x_scale, y_scale, re_x, re_y)
 
-    def grade(self, image_name, verbose_mode, debug_mode, scale):
+    def grade(self, image_name, verbose_mode, debug_mode, scale, test, page_number, box_number = 1):
         """
         Grades a test image and outputs the result to stdout as a JSON object.
 
@@ -177,6 +148,9 @@ class Grader:
             debug_mode (bool): True to run program in debug mode, False 
                 otherwise.
             scale (str): Factor to scale image slices by.
+            test (str): Name of test
+            page_number (int): Page number of test
+            box_number (int): Optional; which box to grade on the test (ordered largest to smallest)
 
         """
         # Initialize dictionary to be returned.
@@ -202,6 +176,7 @@ class Grader:
             data['error'] = f'Scale {scale} must be positive'
             return json.dump(data, sys.stdout)
 
+        #TODO: convert other image types to .png
         # Verify that the filepath leads to a .png
         if not (image_name.endswith('.png')):
             data['status'] = 1
@@ -213,25 +188,26 @@ class Grader:
         if im is None:
             data['status'] = 1
             data['error'] = f'Image {image_name} not found'
-            return json.dump(data, sys.stdout);
+            return json.dump(data, sys.stdout)
 
-        # Find test page within image.
+        # Find largest box within image.
         page = self.find_page(im)
         if page is None:
             data['status'] = 1
             data['error'] = f'Page not found in {image_name}'
-            return json.dump(data, sys.stdout);   
+            return json.dump(data, sys.stdout) 
+        if debug_mode:
+            cv.imshow('', page)
+            cv.waitKey()
 
-        # Decode QR code, which will contain path to configuration file.
-        qr_code = self.decode_qr(page)
-        if qr_code is None:
-            data['status'] = 1
-            data['error'] = f'QR code not found in {image_name}'
-            return json.dump(data, sys.stdout);
+        #Identify configuration file  
+        if box_number == 1:
+            config_fname = (os.path.dirname(os.path.abspath(__file__)) 
+            + f'/config/{test}_page{page_number}.json')
         else:
-            config_fname = qr_code.data.decode('utf-8')
-            config_fname = (os.path.dirname(os.path.abspath(sys.argv[0])) 
-                + '/config/6q.json')
+            config_fname = (os.path.dirname(os.path.abspath(__file__)) 
+            + f'/config/{test}_page{page_number}_box{box_number}.json')
+
 
         # Read config file into dictionary and scale values. Check for duplicate
         # keys with object pairs hook.
@@ -241,7 +217,7 @@ class Grader:
                     object_pairs_hook=config_parser.duplicate_key_check)
         except FileNotFoundError:
             data['status'] = 1
-            data['error'] = f'Configuration file {qrData} not found'
+            data['error'] = f'Configuration file {config_fname} not found'
             return json.dump(data, sys.stdout)
 
         # Parse config file.
@@ -260,7 +236,7 @@ class Grader:
         if page is None:
             data['status'] = 1
             data['error'] = f'Could not upright page in {image_name}'
-            return json.dump(data, sys.stdout);
+            return json.dump(data, sys.stdout)
 
         # Grade each test box and add result to data.
         for box_config in config['boxes']:
@@ -268,14 +244,17 @@ class Grader:
             box_config['y_error'] = config['y_error']
             box_config['bubble_width'] = config['bubble_width']
             box_config['bubble_height'] = config['bubble_height']
+            box_config['min_bubbles_per_box'] = config['min_bubbles_per_box']
+            box_config['box_to_grade'] = config['box_to_grade']
+
             box = TestBox(page, box_config, verbose_mode, debug_mode, scale)
             data[box.name] = box.grade()
 
         # Output result as a JSON object to stdout.
-        json.dump(data, sys.stdout)
-        print()
+       # json.dump(data, sys.stdout)
+        #print()
 
-        # For debugging.
+         # For debugging.
         return json.dumps(data)
 
 

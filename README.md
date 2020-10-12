@@ -39,7 +39,8 @@ $ pip3 install imutils
 $ sudo apt-get install libzbar-dev libzbar0
 $ pip3 install pyzbar
 ```
-
+## Adding/Configuring new test
+To add a new test, copy one of the test files and change the file path to lead to your image. Make a configuration file by copying one of the configuration files in the config folder. 
 ## Running
 
 `$ python grader.py -i path [-v] [-d] [-s scale]`

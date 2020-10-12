@@ -1,0 +1,57 @@
+{
+    "page_width": 1240.0,
+    "page_height": 1590.0,
+    "bubble_width": 26.0,
+    "bubble_height": 26.0,
+    "x_error": 10.8,
+    "y_error": 10.8,
+    "min_bubbles_per_box": 14,
+    "box_to_grade": 2,
+    "boxes": [
+        {
+            "name": "answer",
+            "type": "number",
+            "orientation": "top-to-bottom",
+            "multiple_responses": false,
+            "x": 30.0,
+            "y": 120.0,
+            "rows": 12,
+            "columns": 4,
+            "num_questions": 20,
+            "groups": [
+                {
+                    "x_min": 90.0, 
+                    "x_max": 205.0,
+                    "y_min": 270.0,
+                    "y_max": 680.0
+                },  
+                {
+                    "x_min": 320.0,
+                    "x_max": 435.0,
+                    "y_min": 270.0,
+                    "y_max": 680.0    
+                },
+                {
+                    "x_min": 545.0,
+                    "x_max": 660.0,
+                    "y_min": 270.0,
+                    "y_max": 680.0                   
+                },
+
+                {
+                    "x_min": 770.0,
+                    "x_max": 890.0,
+                    "y_min": 270.0,
+                    "y_max": 680.0                  
+                },
+                {
+                    "x_min": 1000.0,
+                    "x_max": 1120.0,
+                    "y_min": 270.0,
+                    "y_max": 680.0                  
+                }
+            ] 
+        }
+       
+    ]
+}

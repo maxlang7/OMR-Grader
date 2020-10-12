@@ -1,0 +1,16 @@
+name: grader
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.8
+  - py-opencv=4.2
+  - pylint
+  - imutils
+  - rope
+  - click
+  - flask
+  - celery
+  - requests
+  - uwsgi
+  

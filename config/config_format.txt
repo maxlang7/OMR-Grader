@@ -1,0 +1,37 @@
+This file describes how the config file is formatted
+
+(Everything is in pixels)
+
+
+
+    "page_width": 1550.0,  used for scaling
+    "page_height": 1100.0, used for scaling
+    "bubble_width": 35.0,  Kinda Obvious
+    "bubble_height": 35.0, Kinda Obvious
+    "x_error": 10.8, Used to help determine the location of the questions on the page and the which question each bubble belongs to.
+    "y_error": 10.8, Used to help determine the location of the questions on the page and the which question each bubble belongs to.
+    "box_to_grade": 2, Which box do we want to grade. largest to smallest i.e. 1st largest box = 1 2nd largest box = 2 etc.
+    "boxes": [
+        {
+            "name": "answer",
+            "type": "letter",
+            "orientation": "left-to-right", "left-to-right, right-to-left, bottom-to-top, top-to-bottom
+            "multiple_responses": true, 
+            "x": 10.0, *subtracted from every group's x_min and x_max to calculate a group's boundaries and is also used to find the box to be graded.
+            "y": 5.0,  *subtracted from every group's y_min and y_max to calculate a group's boundaries and is also used to find the box to be graded.
+            "rows": 9, *used with y min and y max to figure out the height of each question.
+            "columns": 5, *bubbles per question
+            "groups": [   *one entry for each column in the box
+                {
+                    "x_min": 40.0, 
+                    "x_max": 200.0,
+                    "y_min": 100.0, *distance from top of box to first question, 
+                    "y_max": 1175.0 *distance from top of box to last question
+                },
+                ...
+                
+            ]
+        }
+       
+    ]
+}
