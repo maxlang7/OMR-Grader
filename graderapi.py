@@ -17,7 +17,7 @@ flaskapp.config["DEBUG"] = True
 #TODO: set up celery (+rabbit mq) on server
 database_connection = ""
 #TODO Jason questions:Get SMtp server info. Database connection info.
-adminvpt@studypoint.com
+#adminvpt@studypoint.com
 #uploads parsed test data to database
 def upload_to_database(data, examinfo):
     

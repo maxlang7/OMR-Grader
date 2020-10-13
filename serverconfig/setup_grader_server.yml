@@ -121,7 +121,7 @@
       name: uwsgi
       enabled: yes
       state: started
-  - name: Install uwsgi service
+  - name: Install celery service
     template: 
       src: celery.service.j2
       dest: /etc/systemd/system/celery.service
