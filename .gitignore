@@ -3,3 +3,4 @@ __pycache__/
 unused/
 calQuiz/
 .vscode/*
+serverconfig/hosts
