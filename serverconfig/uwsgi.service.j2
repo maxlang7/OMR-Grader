@@ -8,9 +8,10 @@ Type=simple
 
 # Preferably configure a non-privileged user
 User=deploy
+Group=www-data
 
 WorkingDirectory={{app_path}}
-ExecStart=/bin/bash -lc '/home/deploy/miniconda3/envs/grader/bin/uwsgi -s /tmp/grader.sock --manage-script-name --mount /=graderapi:flaskapp'
+ExecStart=/bin/bash -lc '/home/deploy/miniconda3/envs/grader/bin/uwsgi -s /tmp/grader.sock --chmod-socket=664 --manage-script-name --mount /=graderapi:flaskapp'
 
 Restart=always
 

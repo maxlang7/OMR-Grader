@@ -1,2 +1,2 @@
-awsgrader ansible_host=ec2-18-222-170-104.us-east-2.compute.amazonaws.com
+awsgrader ansible_host=ec2-54-174-87-221.compute-1.amazonaws.com
 

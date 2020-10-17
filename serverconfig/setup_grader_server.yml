@@ -42,6 +42,27 @@
       owner: www-data
       group: deploy
       mode: 0775
+  - name: swapfile exists?
+    stat:
+      path: /swapfile
+    register: swapfile
+  - name: add swap file
+    block:
+    - name: allocate the file
+      command: fallocate -l 1G /swapfile
+    - name: format the file for swap
+      command: mkswap /swapfile
+    - name: change swap file permissions
+      file: path=/swapfile owner=root group=root mode=0600
+    - name: add the file to the system as a swap file
+      command: swapon /swapfile
+    - name: write swap entry in fstab
+      mount: name=none src=/swapfile fstype=swap opts=sw passno=0 dump=0 state=present
+    when: swapfile.stat.exists == false
+  - name: conda exists?
+    stat:
+      path: ~/miniconda3
+    register: miniconda3_dir
   - name: Install Conda
     block:
     - name: Download Miniconda
@@ -73,6 +94,7 @@
       become: True
       become_user: deploy
       shell: bash -lc 'conda init bash'
+    when: miniconda3_dir.stat.exists == false
   - name: add email for admin user
     copy:
       content: |
@@ -115,6 +137,8 @@
     become: True
     become_user: deploy
     shell: bash -lc 'conda env create -f {{app_path}}/environment.yml'
+    args:
+      creates: /home/deploy/miniconda3/envs/grader
   - name: start uwsgi on boot
     systemd:
       daemon_reload: true
@@ -141,5 +165,9 @@
   - name: restart nginx
     service:
       name: nginx
+      state: restarted
+  - name: restart uwsgi
+    service:
+      name: uwsgi
       state: restarted
     
