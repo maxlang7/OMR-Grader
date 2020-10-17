@@ -13,4 +13,5 @@ dependencies:
   - celery
   - requests
   - uwsgi
+  - pyodbc
   

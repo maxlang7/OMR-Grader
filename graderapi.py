@@ -3,8 +3,10 @@ import tempfile
 import requests
 #email sending stuff
 import smtplib
+from datetime import date
 from email.message import EmailMessage
-
+import hashlib
+import pyodbc
 import shutil
 import grader as g
 import json
@@ -18,10 +20,47 @@ flaskapp.config["DEBUG"] = True
 database_connection = ""
 #TODO Jason questions:Get SMtp server info. Database connection info.
 #adminvpt@studypoint.com
+
+
 #uploads parsed test data to database
-def upload_to_database(data, examinfo):
+def upload_to_database(examinfo, page_answers):
+    conn = pyodbc.connect('Driver={SQL Server};'
+                      'Server=server_name;'
+                      'Database=database_name;'
+                      'Trusted_Connection=yes;')
+
+    cursor = conn.cursor()
+    cursor.execute("insert into Grader_Submissions "\
+                   "(First_Name, Last_Name, Email_Address, Test_Type, Test_ID, Submission_JSON) "  \
+                   "values (?,?,?,?,?,?)", examinfo['First Name'], examinfo['Last Name'], 
+                   examinfo['Email'], examinfo['Test'], examinfo['Test ID'], json.dumps(page_answers))
     
-    return True
+    submission_id = cursor.lastrowid()
+
+    for page, pagecounter in enumerate(page_answers):
+        for answer, qcounter in enumerate(page):
+            cursor.execute("insert into Grader_Submission_Answers "\
+                        "(Submission_ID, Test_Section, Test_Question_Number, Test_Question_Answer)" \
+                        " values (?,?,?,?)", submission_id, pagecounter+1, 
+                        calculate_qnum(examinfo['Test'], pagecounter, qcounter),
+                        answer)
+
+    conn.commit()
+
+#pages don't all start with 1, so we need to handle that situation
+def calculate_qnum(test,pagecounter,qcounter):
+    #need to calculate the question number on the test e.g. page 5 qcounter 1 = 31
+    if test == 'sat':
+        if pagecounter == 3:
+            return qcounter +16 # box 2 on page 3 starts with 16
+        elif pagecounter == 5:
+            return qcounter + 31 # box 1 on page 5 starts with 31
+        elif pagecounter == 6:
+            return qcounter + 36 # box 2 on page 5 starts with 36
+        else:
+            return qcounter + 1 # otherwise, the first question on the page is 1
+    else:
+        return qcounter +1
 
 def download_image(imgurl, imgpath):
     #dowloads the imgurl and writes it into imgpath.
@@ -39,6 +78,7 @@ def grade_test(examinfo):
     imgurls = examinfo['Image Urls']
     test = examinfo['Test']
     email = examinfo['Email']
+    page_answers = []
     for i, imgurl in enumerate(imgurls):
         page = i + 1
         if page == 3 or page == 5:
@@ -54,13 +94,15 @@ def grade_test(examinfo):
                     data = json.loads(jsonData)
                     print(data['answer']['bubbled'])
                     if data['status'] == 0:
-                        upload_to_database(data['answer']['bubbled'], examinfo)
+                        page_answers.append(data['answer']['bubbled'])
                     else:
                         errors.append(data['error'])
                 else:
                     errors.append('Unable to download {imgurl}')
     if len(errors) > 0:
-        send_error_message(email, errors)   
+        send_error_message(email, errors)
+    else:
+        upload_to_database(examinfo, page_answers)
 
 def send_error_message(email, errors):
     msg = EmailMessage()
@@ -71,7 +113,13 @@ def send_error_message(email, errors):
     s = smtplib.SMTP('localhost')
     s.send_message(msg)
     s.quit()
-  
+
+def examinfohash(examinfo):
+    # makes a hash of everything except the imageurls in examinfo so we can identify student submissions
+    dict = {k: v for k, v in examinfo.items() if not k == 'Image Urls'}.keys()
+    dict['Date Submitted'] = date.today
+    return hashlib.sha1(json.dumps(dict, sort_keys=True)).hexdigest()
+
 @flaskapp.route('/v1/grader', methods=['POST'])
 def handle_grader_message():
     #TODO: determine and parse POSTed message
@@ -87,6 +135,7 @@ def handle_grader_message():
     'Test': flask.request.json['Field6'],
     'Image Urls': imageurls
     }
+    examinfo['Test ID'] = examinfohash(examinfo)
     grade_test.delay(examinfo)
     return flask.Response(status=202)
 
