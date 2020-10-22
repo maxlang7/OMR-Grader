@@ -3,6 +3,7 @@ import math
 import cv2 as cv
 from imutils import contours as cutils
 import numpy as np
+from collections import OrderedDict
 
 import utils
 
@@ -67,7 +68,7 @@ class TestBox:
 
     def init_result_structures(self):
         # Return values.
-        self.bubbled = []
+        self.bubbled = OrderedDict()
         self.unsure = []
         self.images = []
         self.status = 1
@@ -720,8 +721,8 @@ class TestBox:
         # already added.
         if self.verbose_mode and unsure == False:
             self.add_image_slice(question_num, group_num, box)
-
-        self.bubbled.append(self.format_answer(bubbled))
+        qnum = self.calculate_qnum()
+        self.bubbled[qnum] = self.format_answer(bubbled)
 
     def grade_bubbles(self, bubbles, nonbubbles, box):
         """
@@ -758,7 +759,21 @@ class TestBox:
                     clean_question = self.rescue_expected_bubbles(qgroup, clean_question, nonbubbles)
                 if len(clean_question) > 0:
                     self.grade_question(clean_question, question_num, i, box)
-
+    
+    def calculate_qnum(self,test,pagecounter,qcounter):
+    #need to calculate the question number on the test e.g. page 5 qcounter 1 = 31
+        if test == 'sat':
+            if pagecounter == 3:
+                return qcounter + 16 # box 2 on page 3 starts with 16
+            elif pagecounter == 5:
+                return qcounter + 31 # box 1 on page 5 starts with 31
+            elif pagecounter == 6:
+                return qcounter + 36 # box 2 on page 5 starts with 36
+            else:
+                return qcounter + 1 # otherwise, the first question on the page is 1
+        else:
+            return qcounter +1
+    
     def grade(self):
         """
         Finds and grades a test box within a test image.
