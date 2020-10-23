@@ -46,6 +46,8 @@ class TestBox:
         self.type = config['type']
         self.orientation = config['orientation']
         self.multiple_responses = config['multiple_responses']
+        self.num_q_per_super_question = config['num_q_per_super_question']
+        self.starting_question_num = config['starting_question_num']
         self.x = config['x']
         self.y = config['y']
         self.rows = config['rows']
@@ -482,14 +484,14 @@ class TestBox:
         offset = self.get_question_offset(group_config)
 
         if self.orientation == 'left-to-right':
-            question_num = question_num - (group_num * self.rows) - 1
+            zerobased_question_num = question_num - (group_num * self.rows) - self.starting_question_num
             x_min = max(group_config['x_min'] - self.x - self.x_error, 0)
             x_max = group_config['x_max'] - self.x + self.x_error
-            y_min = max((diff * question_num) + offset - (self.y_error / 2), 0)
+            y_min = max((diff * zerobased_question_num) + offset - (self.y_error / 2), 0)
             y_max = y_min + self.bubble_height + self.y_error
         elif self. orientation == 'top-to-bottom':
-            question_num = question_num - (group_num * self.columns) - 1
-            x_min = max((diff * question_num) + offset - (self.x_error / 2), 0)
+            zerobased_question_num = question_num - (group_num * self.columns) - self.starting_question_num
+            x_min = max((diff * zerobased_question_num) + offset - (self.x_error / 2), 0)
             x_max = x_min + self.bubble_width + self.x_error
             y_min = max(group_config['y_min'] - self.y - self.y_error, 0)
             y_max = group_config['y_max'] - self.y + self.y_error
@@ -721,8 +723,7 @@ class TestBox:
         # already added.
         if self.verbose_mode and unsure == False:
             self.add_image_slice(question_num, group_num, box)
-        qnum = self.calculate_qnum()
-        self.bubbled[qnum] = self.format_answer(bubbled)
+        self.bubbled[question_num] = self.format_answer(bubbled)
 
     def grade_bubbles(self, bubbles, nonbubbles, box):
         """
@@ -742,7 +743,7 @@ class TestBox:
             if len(qgroup) <= 1:
                 continue
             # Sort bubbles in each question based on box orientation then grade.
-            for (j, question) in enumerate(qgroup, 1):
+            for (j, question) in enumerate(qgroup, self.starting_question_num):
                 # Make sure that we have enough bubbles in each question.
                 question_num = j + (i * len(qgroup))
                 #creates a new lambda function that finds the x coordinate of a contour
@@ -759,21 +760,7 @@ class TestBox:
                     clean_question = self.rescue_expected_bubbles(qgroup, clean_question, nonbubbles)
                 if len(clean_question) > 0:
                     self.grade_question(clean_question, question_num, i, box)
-    
-    def calculate_qnum(self,test,pagecounter,qcounter):
-    #need to calculate the question number on the test e.g. page 5 qcounter 1 = 31
-        if test == 'sat':
-            if pagecounter == 3:
-                return qcounter + 16 # box 2 on page 3 starts with 16
-            elif pagecounter == 5:
-                return qcounter + 31 # box 1 on page 5 starts with 31
-            elif pagecounter == 6:
-                return qcounter + 36 # box 2 on page 5 starts with 36
-            else:
-                return qcounter + 1 # otherwise, the first question on the page is 1
-        else:
-            return qcounter +1
-    
+
     def grade(self):
         """
         Finds and grades a test box within a test image.

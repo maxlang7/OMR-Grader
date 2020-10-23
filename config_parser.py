@@ -1,8 +1,10 @@
 class Parser:
 
-    config_keys = ['page_width', 'page_height', 'bubble_width', 'bubble_height', 'x_error', 'y_error', 'boxes', 'min_bubbles_per_box', 'box_to_grade']
+    config_keys = ['page_width', 'page_height', 'bubble_width', 
+                   'bubble_height', 'x_error', 'y_error', 'boxes', 'min_bubbles_per_box', 'box_to_grade']
 
-    box_keys = ['name', 'type', 'orientation', 'multiple_responses', 'x', 'y',
+    box_keys = ['name', 'type', 'orientation', 'multiple_responses', 'num_q_per_super_question', 
+            'starting_question_num', 'x', 'y',
         'rows', 'columns', 'num_questions', 'groups']
 
     group_keys = ['x_min', 'x_max', 'y_min', 'y_max']
@@ -282,7 +284,7 @@ class Parser:
             self.parse_string(key, value)
         elif key == 'x' or key == 'y':
             self.parse_float(key, value)
-        elif key in ['rows', 'columns', 'num_questions']:
+        elif key in ['rows', 'columns', 'num_questions', 'num_q_per_super_question', 'starting_question_num']:
             self.parse_int(key, value)
         elif key == 'multiple_responses':
             self.parse_bool(key, value)

@@ -13,6 +13,8 @@
             "type": "letter",
             "orientation": "left-to-right",
             "multiple_responses": false,
+            "num_q_per_super_question": 1, 
+            "starting_question_num": 1,
             "x": 30.0,
             "y": 10.0,
             "rows": 9,
