@@ -1,10 +1,11 @@
 import unittest
 import json
 import grader as g
+from wand.image import Image
 
 class ExampleImageTests(unittest.TestCase):
     #turn both to true to see images.
-    verbose_mode = False
+    verbose_mode = True
     debug_mode = verbose_mode
 
     def test_page1(self):
@@ -55,6 +56,15 @@ class ExampleImageTests(unittest.TestCase):
         data = json.loads(jsonData)
         self.assertEqual(list(data['answer']['bubbled'].values()), ['D', 'B', 'A', 'A', 'D', 'A', 'D', 'B', 'B', 'D', 'D', 'D', 'A', 'D', 'D', 'A', 'C', 'C', 'A', 'B', 'C', 'B', 'B', 'B', 'C', 'B', 'D', 'D', 'B', 'B', 'C', 'B', 'B', 'A', 'C', 'A', 'B', 'C', 'A', 'A', 'B', 'D', 'D', 'B', 'A', 'B', 'C', 'A', 'C', 'B', 'D', 'A'])
 
+    def test_heictest(self):
+        grader = g.Grader()
+        with Image(filename='test/images/sat_test1a.heic') as img:  
+            img.format = 'jpeg'
+            img.save(filename='test/images/sat_test1a.heic_jpeg')
+        jsonData = grader.grade('test/images/sat_test1a.heic_jpeg', self.debug_mode, self.verbose_mode, 1.0, 'sat', 1)
+        data = json.loads(jsonData)
+        self.assertEqual(list(data['answer']['bubbled'].values()), ['D', 'B', 'A', 'A', 'D', 'A', 'D', 'B', 'B', 'D', 'D', 'D', 'A', 'D', 'D', 'A', 'C', 'C', 'A', 'B', 'C', 'B', 'B', 'B', 'C', 'B', 'D', 'D', 'B', 'B', 'C', 'B', 'B', 'A', 'C', 'A', 'B', 'C', 'A', 'A', 'B', 'D', 'D', 'B', 'A', 'B', 'C', 'A', 'C', 'B', 'D', 'A'])
+    
     def test_page1b(self):
         grader = g.Grader()
         jsonData = grader.grade('test/images/sat_test1b.png', self.debug_mode, self.verbose_mode, 1.0, 'sat', 1)
@@ -92,12 +102,9 @@ class ExampleImageTests(unittest.TestCase):
         jsonData = grader.grade('test/images/sat_test3a.png', self.debug_mode, self.verbose_mode, 1.0, 'sat', 3, 2)
         data = json.loads(jsonData)
 
-        self.assertEqual(len(list(data['answer']['bubbled'].values())),20)
-        self.assertEqual(list(data['answer']['bubbled'].values()), '- - - 4'.split(' ') +
-                                                    '- - 3 10'.split(' ') +
-                                                    '- - 3 3'.split(' ') +
-                                                    '- - - 7'.split(' ') +
-                                                    '- 3 0 5'.split(' ') )                                                  
+        self.assertEqual(len(list(data['answer']['bubbled'].values())),5)
+        self.assertEqual(list(data['answer']['bubbled'].values()), [3.0, 19.0, 12.0, 6.0, 0.25] )
+                                                          
 
     def test_page3a(self):
         grader = g.Grader()

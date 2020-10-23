@@ -723,7 +723,55 @@ class TestBox:
         if self.verbose_mode and unsure == False:
             self.add_image_slice(question_num, group_num, box)
         self.bubbled[question_num] = self.format_answer(bubbled)
+    
+    def create_super_question(self, num_q_per_super_question, bubbled):
+        """
+        For open answer questions, we combine for columns into one super question. 
+        Ex. Nothing, 3, /,4 = 0.75
+        Args:
+            num_q_per_super_question (int): Config file entry for how many columns we should compress into a super question
+            bubbled (dict): A dict ordered by question number containing answers.
+        """
+        super_questions =  OrderedDict()
+        super_bubbled = OrderedDict()
 
+        for question_number, answer in bubbled.items():
+            zero_based_question_num = question_number - self.starting_question_num
+            super_question_num = int(zero_based_question_num/num_q_per_super_question)
+            if not super_question_num in super_questions:
+                super_questions[super_question_num] = []
+            super_questions[super_question_num].append(answer)
+        
+        for key in super_questions.keys():
+            bbld = ''
+            bbld1, bbld2, bbld3, bbld4 = super_questions[key]
+
+            def xlate(ans,has_slash=False):
+                bbld = ''
+                if ans == '-':
+                    bbld += ''
+                elif ans == '0' and has_slash:
+                    bbld += '/'
+                elif (has_slash and ans == 1) or   ((not has_slash) and ans == 0):
+                    bbld += '.'
+                elif has_slash:
+                    bbld += str(int(ans) - 2)
+                else:
+                    bbld += str(int(ans) - 1)
+
+                return bbld
+
+            bbld += xlate(bbld1,has_slash=False)
+            bbld += xlate(bbld2,has_slash=True)
+            bbld += xlate(bbld3,has_slash=True)
+            bbld += xlate(bbld4,has_slash=False)
+            try:
+                answer = round(float(eval(bbld)), 3)
+            except:
+                answer = '-'
+            super_bubbled[key + self.starting_question_num] = answer
+        return super_bubbled         
+        
     def grade_bubbles(self, bubbles, nonbubbles, box):
         """
         Grades a list of bubbles from the test box.
@@ -790,6 +838,8 @@ class TestBox:
             else:
                 self.error = f"expected {self.num_questions} got {len(self.bubbled)}"
                 self.status =  1
+        if self.num_q_per_super_question > 1:
+            self.bubbled = self.create_super_question(self.num_q_per_super_question, self.bubbled)
         # Add results of grading to return value.
         data['bubbled'] = self.bubbled
         data['unsure'] = self.unsure
