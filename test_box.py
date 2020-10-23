@@ -88,7 +88,7 @@ class TestBox:
                 to a group.
 
         """
-        (x, y, w, h) = cv.boundingRect(bubble)
+        (x, y, _w, _h) = cv.boundingRect(bubble)
 
         # Add offsets to get coordinates in relation to the whole test image 
         # instead of in relation to the test box.
@@ -579,7 +579,6 @@ class TestBox:
         mask = cv.bitwise_and(box, box, mask=mask)
 
         total = cv.countNonZero(mask)
-        (x, y, w, h) = cv.boundingRect(bubble)
         # We were using the max of the contour w and h before and any bubbles colored outside 
         # the lines didn't have the right total area because their radiuses were too big.
     
@@ -746,6 +745,7 @@ class TestBox:
             for (j, question) in enumerate(qgroup, self.starting_question_num):
                 # Make sure that we have enough bubbles in each question.
                 question_num = j + (i * len(qgroup))
+
                 #creates a new lambda function that finds the x coordinate of a contour
                 if self.orientation == "top-to-bottom":
                     # if its top to bottom we are using y as the thing to sort by
