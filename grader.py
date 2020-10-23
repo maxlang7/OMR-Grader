@@ -3,7 +3,6 @@ import sys
 import argparse
 import json
 import re
-
 import cv2 as cv
 from imutils.perspective import four_point_transform
 
@@ -176,12 +175,6 @@ class Grader:
             data['error'] = f'Scale {scale} must be positive'
             return json.dump(data, sys.stdout)
 
-        #TODO: convert other image types to .png
-        # Verify that the filepath leads to a .png
-        if not (image_name.endswith('.png')):
-            data['status'] = 1
-            data['error'] = f'File {image_name} must be of type .png'
-            return json.dump(data, sys.stdout)
 
         # Load image. 
         im = cv.imread(image_name)
