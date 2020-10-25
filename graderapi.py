@@ -1,19 +1,28 @@
-import flask
-import tempfile
-import requests
+import hashlib
+import json
+import shutil
+import os
 #email sending stuff
 import smtplib
+import tempfile
 from datetime import date
 from email.message import EmailMessage
-import hashlib
+
+import flask
 import pyodbc
-import shutil
-import grader as g
-import json
+import requests
 from celery import Celery
+from dotenv import load_dotenv
+
+import grader as g
+
 flaskapp = flask.Flask(__name__)
 celeryapp = Celery('tasks', broker='pyamqp://guest@localhost//')
 flaskapp.config["DEBUG"] = True
+load_dotenv()
+DB_SERVER_NAME=os.getenv('DB_SERVER_NAME')
+DB_USER=os.getenv('DB_USER')
+DB_PASSWORD=os.getenv('DB_PASSWORD')
 
 #TODO: add database connection details
 #TODO: set up celery (+rabbit mq) on server
@@ -25,8 +34,10 @@ database_connection = ""
 #uploads parsed test data to database
 def upload_to_database(examinfo, page_answers):
     conn = pyodbc.connect('Driver={SQL Server};'
-                      'Server=server_name;'
-                      'Database=database_name;'
+                      f'Server={DB_SERVER_NAME};'
+                      f'Database={DB_NAME};'
+                      f'UID={DB_USER};'
+                      f'PWD={DB_PASSWORD};'
                       'Trusted_Connection=yes;')
 
     cursor = conn.cursor()

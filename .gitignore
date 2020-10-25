@@ -4,3 +4,4 @@ unused/
 calQuiz/
 .vscode/*
 serverconfig/hosts
+.env
