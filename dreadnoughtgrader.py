@@ -2,10 +2,6 @@ import click
 import grader as g
 import json
 
-#database connnection information
-
-#TODO Add another test image (max)
-#TODO Build test for that image (max)
 @click.command()
 @click.option('--test', type=click.Choice(['SAT', 'ACT']), default='SAT', help='test to grade', required=True)
 @click.option('--page', type=int, help='page to grade (1, 2, 3 etc.)', required=True)

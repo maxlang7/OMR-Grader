@@ -24,11 +24,13 @@ DB_SERVER_NAME=os.getenv('DB_SERVER_NAME')
 DB_USER=os.getenv('DB_USER')
 DB_PASSWORD=os.getenv('DB_PASSWORD')
 
+
 #TODO: add database connection details
-#TODO: set up celery (+rabbit mq) on server
+#TODO: Configure and test emailing errors
+#TODO .Heic
+#TODO Finish wufoo form and add results to api code
 database_connection = ""
-#TODO Jason questions:Get SMtp server info. Database connection info.
-#adminvpt@studypoint.com
+
 
 
 #uploads parsed test data to database
