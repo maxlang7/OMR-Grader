@@ -733,7 +733,7 @@ class TestBox:
             # find the darkest bubble in a question
             if len(bubble_pcts) > 0:
                 darkest_index = np.argmax(bubble_pcts)
-                if bubble_pcts[darkest_index] > 0.2:
+                if bubble_pcts[darkest_index] > 0.66:
                     bubbled = str(darkest_index)
         
 
