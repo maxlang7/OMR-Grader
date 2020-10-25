@@ -190,6 +190,16 @@ class TestBox:
             return False
 
         return True
+
+
+    def contours_overlap(self, contour1, contour2):
+        (x, y, w, h) = cv.boundingRect(contour1)
+        (x1, y1, w1, h1) = cv.boundingRect(contour2)
+        # it is easier to calculate the non-overlapping cases because there are less of them.
+        return not (x > x1 + w1 or x1 > x + w) and \
+               not (y > y1 + h1 or y1 > y + h) 
+
+
     def compress_overlapping_bubbles(self, bubbles, box):
         """
         Finds Bubbles that are overlapping and uses the bigger one.
@@ -205,11 +215,9 @@ class TestBox:
             return bubbles
         first_bubble = bubbles[0]
         for contour in bubbles:
-            (x, y, w, h) = cv.boundingRect(contour)
-            (x1, y1, w1, h1) = cv.boundingRect(first_bubble)
-            # it is easier to calculate the non-overlapping cases because there are less of them.
-            if not (x > x1 + w1 or x1 > x + w) and \
-               not (y > y1 + h1 or y1 > y + h):
+            if self.contours_overlap(contour, first_bubble):
+                (_x, _y, w, h) = cv.boundingRect(contour)
+                (_x1, _y1, w1, h1) = cv.boundingRect(first_bubble)
                 """if self.debug_mode:j
                     colorbox = cv.cvtColor(box, cv.COLOR_GRAY2BGR)
                     cv.drawContours(colorbox, contour, -1, (0,255,255), 3)
@@ -300,7 +308,7 @@ class TestBox:
         else:
             return True
 
-    def is_box(self, contour, threshold):
+    def is_box(self, contour, page):
         """
         Checks if x and y coordinates of a contour match the x and y coordinates
         of this test box, with margins for error.
@@ -314,12 +322,22 @@ class TestBox:
 
         """
         (_, _, w, h) = cv.boundingRect(contour)
-        threshh, threshw = threshold.shape
-        if (w*h >= .1 * threshh * threshw and #eliminating possible boxes based on area so we get the right box to grade.
-            self.box_contains_bubbles(contour, threshold)):
+        page_height, page_width = page.shape
+        #eliminating possible boxes based on area so we get the right box to grade.
+        if (w*h >= .1 * page_height * page_width and 
+            w > .5 * page_width and 
+            self.box_contains_bubbles(contour, page)):
             return True
         else:
             return False
+
+
+    def similar_box_found(self, contour, potential_boxes):
+        for box in potential_boxes:
+            if self.contours_overlap(box, contour):
+                return True
+
+
 
     def get_box(self):
         """
@@ -331,15 +349,16 @@ class TestBox:
 
         """
         # Blur and threshold the page, then find boxes within the page.
-        threshold = utils.get_threshold(self.page)
-        contours, _ = cv.findContours(threshold, cv.RETR_TREE, 
+        thresh_page = utils.get_threshold(self.page)
+        contours, _ = cv.findContours(thresh_page, cv.RETR_TREE, 
             cv.CHAIN_APPROX_SIMPLE)
         potential_boxes = []
         # Iterate through contours until the correct box is found.
         #try to handle case 1a, where there is one big outer box and smaller ones inside of it and one of the smaller ones actually contains the bubbles.
         for contour in contours:
-            if self.is_box(contour, threshold):
-                potential_boxes.append(contour)
+            if self.is_box(contour, thresh_page):
+                if not self.similar_box_found(contour, potential_boxes):
+                    potential_boxes.append(contour)
         #sorting potential boxes by y position
         boundingBoxes = [cv.boundingRect(box) for box in potential_boxes]
         (potential_boxes, boundingBoxes) = zip(*sorted(zip(potential_boxes, boundingBoxes), key=lambda b:b[1][1]))
@@ -350,7 +369,7 @@ class TestBox:
         elif len(potential_boxes) < self.box_to_grade:
             raise BoxNotFoundError('Not enough boxes found on the page')
         else:                
-            return utils.get_transform(potential_boxes[self.box_to_grade - 1], threshold)
+            return utils.get_transform(potential_boxes[self.box_to_grade - 1], thresh_page)
         
     def init_questions(self):
         """
@@ -574,28 +593,15 @@ class TestBox:
         """
         # Applies a mask to the entire test box image to only look at one
         # bubble, then counts the number of nonzero pixels in the bubble.
-        scale = .7
-        M = cv.moments(bubble)
-        cx = int(M['m10']/M['m00'])
-        cy = int(M['m01']/M['m00'])
-        centerbubble = bubble - [cx, cy]
-        scaledbubble = centerbubble * scale
-        scaledbubble = (scaledbubble + [cx, cy]).astype(np.int32)
-        _, _, w, h = cv.boundingRect(scaledbubble)
-        """if self.debug_mode:
-            #show the detected bubbles in green.
-            colorbox = cv.cvtColor(box, cv.COLOR_GRAY2BGR)
-            cv.drawContours(colorbox, scaledbubble, -1, (0,255,0), 2)
-            cv.imshow('', colorbox)
-            cv.waitKey()"""
+       
         mask = np.zeros(box.shape, dtype='uint8')
-        cv.drawContours(mask, [scaledbubble], -1, 255, -1)
+        cv.drawContours(mask, [bubble], -1, 255, -1)
         mask = cv.bitwise_and(box, box, mask=mask)
 
         total = cv.countNonZero(mask)
         # We were using the max of the contour w and h before and any bubbles colored outside 
         # the lines didn't have the right total area because their radiuses were too big.
-    
+        _, _, w, h = cv.boundingRect(bubble)
         area = math.pi * ((np.average([h, w])/2) ** 2)
 
         return total / area
@@ -703,12 +709,6 @@ class TestBox:
         unsure = False
 
         # If question is missing bubbles, mark as unsure.
-
-        if self.debug_mode:
-            colorbox = cv.cvtColor(box, cv.COLOR_GRAY2BGR)
-            cv.drawContours(colorbox, question, -1, (0,255,0), 3)
-            cv.imshow('', colorbox)
-            cv.waitKey()
         if len(question) != self.bubbles_per_q:
             unsure = True
             self.handle_unsure_question(question_num, group_num, box)
@@ -790,7 +790,32 @@ class TestBox:
                 answer = '-'
             super_bubbled[key + self.starting_question_num] = answer
         return super_bubbled         
-        
+    
+    def shrink_bubbles(self, clean_question, box):
+        """
+        shrinks down the bubbles so that we don't get the outer printed ring.
+        """
+        shrunken_bubbles = []
+        for bubble in clean_question:
+            scale = .6
+            M = cv.moments(bubble)
+            cx = int(M['m10']/M['m00'])
+            cy = int(M['m01']/M['m00'])
+            centerbubble = bubble - [cx, cy]
+            scaledbubble = centerbubble * scale
+            scaledbubble = (scaledbubble + [cx, cy]).astype(np.int32)
+            shrunken_bubbles.append(scaledbubble)
+
+        if self.debug_mode:
+            #show the detected bubbles in green.
+            colorbox = cv.cvtColor(box, cv.COLOR_GRAY2BGR)
+            cv.drawContours(colorbox, shrunken_bubbles, -1, (0,255,0), 2)
+            cv.imshow('', colorbox)
+            cv.waitKey()
+            
+        return shrunken_bubbles
+
+
     def grade_bubbles(self, bubbles, nonbubbles, box):
         """
         Grades a list of bubbles from the test box.
@@ -825,6 +850,7 @@ class TestBox:
                 clean_question = self.compress_overlapping_bubbles(question_sorted, box)
                 if len(clean_question) < self.bubbles_per_q and self.orientation == "left-to-right" : #and len(clean_question) > 0:
                     clean_question = self.rescue_expected_bubbles(qgroup, clean_question, nonbubbles)
+                clean_question = self.shrink_bubbles(clean_question, box)
                 if len(clean_question) > 0:
                     self.grade_question(clean_question, question_num, i, box)
 
