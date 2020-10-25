@@ -574,15 +574,29 @@ class TestBox:
         """
         # Applies a mask to the entire test box image to only look at one
         # bubble, then counts the number of nonzero pixels in the bubble.
+        scale = .7
+        M = cv.moments(bubble)
+        cx = int(M['m10']/M['m00'])
+        cy = int(M['m01']/M['m00'])
+        centerbubble = bubble - [cx, cy]
+        scaledbubble = centerbubble * scale
+        scaledbubble = (scaledbubble + [cx, cy]).astype(np.int32)
+        _, _, w, h = cv.boundingRect(scaledbubble)
+        """if self.debug_mode:
+            #show the detected bubbles in green.
+            colorbox = cv.cvtColor(box, cv.COLOR_GRAY2BGR)
+            cv.drawContours(colorbox, scaledbubble, -1, (0,255,0), 2)
+            cv.imshow('', colorbox)
+            cv.waitKey()"""
         mask = np.zeros(box.shape, dtype='uint8')
-        cv.drawContours(mask, [bubble], -1, 255, -1)
+        cv.drawContours(mask, [scaledbubble], -1, 255, -1)
         mask = cv.bitwise_and(box, box, mask=mask)
 
         total = cv.countNonZero(mask)
         # We were using the max of the contour w and h before and any bubbles colored outside 
         # the lines didn't have the right total area because their radiuses were too big.
     
-        area = math.pi * ((np.average([self.bubble_height, self.bubble_width])/2) ** 2)
+        area = math.pi * ((np.average([h, w])/2) ** 2)
 
         return total / area
 
@@ -704,19 +718,24 @@ class TestBox:
         for (i, bubble) in enumerate(question):
             percent_marked = self.get_percent_marked(bubble, box)
             bubble_pcts.append(percent_marked)
-            if percent_marked > 0.8:
+            sure = False
+            if percent_marked > 0.4:
                 bubbled += str(i)
-            elif percent_marked > 0.65 and unsure == False:
+                sure = True
+            elif percent_marked > 0.2 and unsure == False:
                 unsure = True
                 self.handle_unsure_question(question_num, group_num, box)
                 #bubbled = '?'
                 #break
+            with open('meow.txt', 'a') as file:
+                file.write(f'{sure},{round(percent_marked,3)}\n') 
         if self.multiple_responses == False:
             # find the darkest bubble in a question
             if len(bubble_pcts) > 0:
                 darkest_index = np.argmax(bubble_pcts)
-                if bubble_pcts[darkest_index] > .8:
+                if bubble_pcts[darkest_index] > 0.2:
                     bubbled = str(darkest_index)
+        
 
         # Add image slice if program running in verbose mode and image slice not
         # already added.
