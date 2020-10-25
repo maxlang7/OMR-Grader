@@ -771,7 +771,7 @@ class TestBox:
                     bbld += ''
                 elif ans == '0' and has_slash:
                     bbld += '/'
-                elif (has_slash and ans == 1) or   ((not has_slash) and ans == 0):
+                elif (has_slash and ans == '1') or   ((not has_slash) and ans == '0'):
                     bbld += '.'
                 elif has_slash:
                     bbld += str(int(ans) - 2)
