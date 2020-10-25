@@ -22,7 +22,7 @@ def get_threshold(im):
     blurred = cv.GaussianBlur(im, (1, 1), 0)
     blurred = cv.bilateralFilter(blurred,5,50,50)
     threshold = cv.adaptiveThreshold(blurred,255,cv.ADAPTIVE_THRESH_GAUSSIAN_C,\
-            cv.THRESH_BINARY_INV, 91, 9)
+            cv.THRESH_BINARY_INV, 91, 4)
     return threshold
 
 def get_transform(contour, im):
