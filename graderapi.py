@@ -1,9 +1,10 @@
 import hashlib
 import json
-import shutil
 import os
+import shutil
 #email sending stuff
 import smtplib
+import ssl
 import tempfile
 from datetime import date
 from email.message import EmailMessage
