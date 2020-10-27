@@ -24,7 +24,11 @@ load_dotenv()
 DB_SERVER_NAME=os.getenv('DB_SERVER_NAME')
 DB_USER=os.getenv('DB_USER')
 DB_PASSWORD=os.getenv('DB_PASSWORD')
-
+DB_NAME=os.getenv('DB_NAME')
+SMTP_HOST=os.getenv('SMTP_HOST')
+SMTP_USERNAME=os.getenv('SMTP_USERNAME')
+SMTP_PASSWORD=os.getenv('SMTP_PASSWORD')
+SMTP_PORT=os.getenv('SMTP_PORT')
 
 #TODO: add database connection details
 #TODO: Configure and test emailing errors
@@ -119,14 +123,23 @@ def grade_test(examinfo):
         upload_to_database(examinfo, page_answers)
 
 def send_error_message(email, errors):
+    
     msg = EmailMessage()
     msg['Subject'] = 'We had trouble grading your recent test.'
-    msg['From'] = 'grader@studypoint.com'
+    msg['From'] = 'adminvpt@studypoint.com'
     msg['To'] = email
-    msg.set_content('Unable to process test. Errors:' + errors.join('\n'))
-    s = smtplib.SMTP('localhost')
-    s.send_message(msg)
-    s.quit()
+    msg.set_content('Unable to process test. Errors:' + '\n'.join(errors))
+    context = ssl.create_default_context()
+    try:
+        s = smtplib.SMTP(host=SMTP_HOST, port=SMTP_PORT)
+        s.starttls(context=context) # Secure the connection
+        s.login(user=SMTP_USERNAME, password=SMTP_PASSWORD)
+        s.send_message(msg)
+    except Exception as e:
+        print(e)
+    finally:
+        s.quit()
+
 
 def examinfohash(examinfo):
     # makes a hash of everything except the imageurls in examinfo so we can identify student submissions
