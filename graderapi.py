@@ -135,14 +135,16 @@ def handle_grader_message():
     #TODO: determine and parse POSTed message
     imageurls = []
     print(flask.request.json)
-    for i in [8,9,10,11,12]:
+    for i in [8,9,10,11,12,17]:
         imageurls.append(flask.request.json[f'Field{i}_url'])
     #for jason
+    #https://studypoint.wufoo.com/api/code/28
     examinfo = {
     'First Name': flask.request.json['Field1'],
     'Last Name': flask.request.json['Field2'], 
     'Email': flask.request.json['Field5'], 
     'Test': flask.request.json['Field6'],
+    'Test ID': flask.request.json['Field15'],
     'Image Urls': imageurls
     }
     examinfo['Test ID'] = examinfohash(examinfo)
