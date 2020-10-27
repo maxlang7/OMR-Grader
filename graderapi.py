@@ -34,8 +34,6 @@ SMTP_PORT=os.getenv('SMTP_PORT')
 #TODO: Configure and test emailing errors
 #TODO .Heic
 #TODO Finish wufoo form and add results to api code
-database_connection = ""
-
 
 
 #uploads parsed test data to database
@@ -56,29 +54,14 @@ def upload_to_database(examinfo, page_answers):
     submission_id = cursor.lastrowid()
 
     for page, pagecounter in enumerate(page_answers):
-        for answer, qcounter in enumerate(page):
+        for qnum, answer in page.items():
             cursor.execute("insert into Grader_Submission_Answers "\
                         "(Submission_ID, Test_Section, Test_Question_Number, Test_Question_Answer)" \
-                        " values (?,?,?,?)", submission_id, pagecounter+1, 
-                        calculate_qnum(examinfo['Test'], pagecounter, qcounter),
-                        answer)
-
+                        " values (?,?,?,?)", submission_id, pagecounter+1, qnum, answer)
     conn.commit()
 
 #pages don't all start with 1, so we need to handle that situation
-def calculate_qnum(test,pagecounter,qcounter):
-    #need to calculate the question number on the test e.g. page 5 qcounter 1 = 31
-    if test == 'sat':
-        if pagecounter == 3:
-            return qcounter +16 # box 2 on page 3 starts with 16
-        elif pagecounter == 5:
-            return qcounter + 31 # box 1 on page 5 starts with 31
-        elif pagecounter == 6:
-            return qcounter + 36 # box 2 on page 5 starts with 36
-        else:
-            return qcounter + 1 # otherwise, the first question on the page is 1
-    else:
-        return qcounter +1
+
 
 def download_image(imgurl, imgpath):
     #dowloads the imgurl and writes it into imgpath.
