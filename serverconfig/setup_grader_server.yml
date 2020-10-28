@@ -33,7 +33,6 @@
        - git
        - libgl1-mesa-glx
        - nginx
-       - nullmailer
        - rabbitmq-server
   - name: add deploy directory
     file: 
@@ -95,16 +94,6 @@
       become_user: deploy
       shell: bash -lc 'conda init bash'
     when: miniconda3_dir.stat.exists == false
-  - name: add email for admin user
-    copy:
-      content: |
-        max@langhorst.com
-      dest: /etc/nullmailer/adminaddr
-  - name: configure remote mail server
-    copy:
-      content: |
-        smtp.studypoint.com
-      dest: /etc/nullmailer/remotes
   - name: install nginx config
     template:
       src: nginx.conf
