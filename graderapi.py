@@ -38,30 +38,29 @@ SMTP_PORT=os.getenv('SMTP_PORT')
 
 #uploads parsed test data to database
 def upload_to_database(examinfo, page_answers):
-    conn = pyodbc.connect('Driver={SQL Server};'
+    conn = pyodbc.connect('Driver={ODBC Driver 17 for SQL Server};'
                       f'Server={DB_SERVER_NAME};'
                       f'Database={DB_NAME};'
                       f'UID={DB_USER};'
                       f'PWD={DB_PASSWORD};'
-                      'Trusted_Connection=yes;')
+                      'Trusted_Connection=no;')
 
     cursor = conn.cursor()
     cursor.execute("insert into Grader_Submissions "\
                    "(First_Name, Last_Name, Email_Address, Test_Type, Test_ID, Submission_JSON) "  \
                    "values (?,?,?,?,?,?)", examinfo['First Name'], examinfo['Last Name'], 
                    examinfo['Email'], examinfo['Test'], examinfo['Test ID'], json.dumps(page_answers))
-    
-    submission_id = cursor.lastrowid()
+    cursor.execute("SELECT @@IDENTITY")
+    submission_id = int(cursor.fetchone()[0])
 
-    for page, pagecounter in enumerate(page_answers):
+    for pagecounter, page in enumerate(page_answers):
         for qnum, answer in page.items():
-            cursor.execute("insert into Grader_Submission_Answers "\
+            cursor.execute("insert into Grader_Submissions_Answers "\
                         "(Submission_ID, Test_Section, Test_Question_Number, Test_Question_Answer)" \
                         " values (?,?,?,?)", submission_id, pagecounter+1, qnum, answer)
     conn.commit()
 
 #pages don't all start with 1, so we need to handle that situation
-
 
 def download_image(imgurl, imgpath):
     #dowloads the imgurl and writes it into imgpath.

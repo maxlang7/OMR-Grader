@@ -162,6 +162,24 @@
       src: sudoers.d.j2
       dest: /etc/sudoers.d/deploy_commands
       owner: root
+  - name: Add MS signing key
+    apt_key:
+      url: https://packages.microsoft.com/keys/microsoft.asc
+      state: present
+  - name: Add repository for Microsoft ODBC Driver for SQL Server
+    apt_repository:
+      repo: 'deb [arch=amd64,armhf,arm64] https://packages.microsoft.com/ubuntu/20.04/prod focal main'
+      state: present
+      filename: mssql-release
+      update_cache: yes
+  - name: Install msodbcsql17, unixodbc-dev and mssql-tools
+    apt: 
+      name:
+        - msodbcsql17
+        - unixodbc-dev
+        - mssql-tools
+    environment:
+      ACCEPT_EULA: 'y'
   - name: restart nginx
     service:
       name: nginx
