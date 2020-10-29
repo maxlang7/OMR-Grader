@@ -79,6 +79,7 @@ def grade_test(examinfo):
     test = examinfo['Test']
     email = examinfo['Email']
     page_answers = []
+    print(f'trying to grade from: {email} {test} ')
     for i, imgurl in enumerate(imgurls):
         page = i + 1
         if page == 3 or page == 5:
@@ -90,6 +91,7 @@ def grade_test(examinfo):
                 download_success = download_image(imgurl, imgpath)
                 if download_success:
                     grader = g.Grader()
+                    #TODO imgpath?? did we download ok?
                     jsonData = grader.grade(imgpath, False, False, 1.0, test.lower(), box, page)
                     data = json.loads(jsonData)
                     print(data['answer']['bubbled'])
@@ -125,7 +127,7 @@ def send_error_message(email, errors):
 
 def examinfohash(examinfo):
     # makes a hash of everything except the imageurls in examinfo so we can identify student submissions
-    dict = {k: v for k, v in examinfo.items() if not k == 'Image Urls'}.keys()
+    dict = {k: v for k, v in examinfo.items() if not k == 'Image Urls'}
     dict['Date Submitted'] = date.today
     return hashlib.sha1(json.dumps(dict, sort_keys=True)).hexdigest()
 
@@ -134,19 +136,30 @@ def handle_grader_message():
     #TODO: determine and parse POSTed message
     imageurls = []
     print(flask.request.form)
-    for i in [8,9,10,11,12,17]:
-        imageurls.append(flask.request.form[f'Field{i}_url'])
+
+    if flask.request.form['HandshakeKey'] == 'SPPNscores2020':
+        print('Success, form is secure')
+    else: 
+        print(flask.request.form['HandshakeKey'])
+        raise InvalidUsage("Invalid submission", status_code=418)
+    test = flask.request.form['Field6']
+    if test == 'ACT':
+        fields = [17]
+    if test == 'SAT':
+        fields = [8,9,10,11,12]
+    for i in fields:
+        imageurls.append(flask.request.form[f'Field{i}-url'])
     #for jason
     #https://studypoint.wufoo.com/api/code/28
     examinfo = {
     'First Name': flask.request.form['Field1'],
     'Last Name': flask.request.form['Field2'], 
-    'Email': flask.request.form['Field5'], 
-    'Test': flask.request.form['Field6'],
+    'Email': flask.request.form['Field5'],
+    'Test': test,
     'Test ID': flask.request.form['Field15'],
     'Image Urls': imageurls
     }
-    examinfo['Test ID'] = examinfohash(examinfo)
+    print(f'examinfo: {examinfo}'
     grade_test.delay(examinfo)
     return flask.Response(status=202)
 
