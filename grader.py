@@ -237,7 +237,8 @@ class Grader:
             return self.format_error(data)
 
         # Grade each test box and add result to data.
-        for box_config in config['boxes']:
+        for box_config in config['boxes']:  
+            # we never actually use multiple boxes, we just call once for each box
             box_config['x_error'] = config['x_error']
             box_config['y_error'] = config['y_error']
             box_config['bubble_width'] = config['bubble_width']
@@ -247,6 +248,8 @@ class Grader:
 
             box = TestBox(page, box_config, verbose_mode, debug_mode, scale)
             data[box.name] = box.grade(page_number)
+            data['status'] =  data[box.name]['status']
+            data['error'] =  data[box.name]['error']
 
         return json.dumps(data)
 
