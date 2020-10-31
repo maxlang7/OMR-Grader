@@ -856,7 +856,7 @@ class TestBox:
                 if len(clean_question) > 0:
                     self.grade_question(clean_question, question_num, i, box)
 
-    def grade(self):
+    def grade(self, page_number):
         """
         Finds and grades a test box within a test image.
 

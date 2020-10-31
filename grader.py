@@ -246,13 +246,8 @@ class Grader:
             box_config['box_to_grade'] = config['box_to_grade']
 
             box = TestBox(page, box_config, verbose_mode, debug_mode, scale)
-            data[box.name] = box.grade()
+            data[box.name] = box.grade(page_number)
 
-        # Output result as a JSON object to stdout.
-       # json.dump(data, sys.stdout)
-        #print()
-
-         # For debugging.
         return json.dumps(data)
 
 

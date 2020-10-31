@@ -102,10 +102,10 @@ def grade_test(examinfo):
                         download_success = download_image(imgurl, imgfile)
                     if download_success:
                         grader = g.Grader()
-                        jsonData = grader.grade(imgpath, False, False, 1.0, test.lower(), box, page)
+                        jsonData = grader.grade(imgpath, False, False, 1.0, test.lower(), page, box)
                         data = json.loads(jsonData)
-                        print(data['answer']['bubbled'])
                         if data['status'] == 0:
+                            print(data['answer']['bubbled'])
                             page_answers.append(data['answer']['bubbled'])
                         elif data['status'] == 1:
                             adminerrors.append(data['error'])
