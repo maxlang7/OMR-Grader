@@ -30,11 +30,7 @@ SMTP_USERNAME=os.getenv('SMTP_USERNAME')
 SMTP_PASSWORD=os.getenv('SMTP_PASSWORD')
 SMTP_PORT=os.getenv('SMTP_PORT')
 
-#TODO: add database connection details
-#TODO: Configure and test emailing errors
 #TODO .Heic
-#TODO Finish wufoo form and add results to api code
-
 
 #uploads parsed test data to database
 def upload_to_database(examinfo, page_answers):
