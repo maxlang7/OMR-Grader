@@ -6,6 +6,7 @@ import shutil
 import smtplib
 import ssl
 import tempfile
+import traceback
 from datetime import date
 from email.message import EmailMessage
 
@@ -60,57 +61,66 @@ def upload_to_database(examinfo, page_answers):
 
 #pages don't all start with 1, so we need to handle that situation
 
-def download_image(imgurl, imgpath):
-    #dowloads the imgurl and writes it into imgpath.
+def download_image(imgurl, imgfile):
+    #dowloads the imgurl and writes it into imgfile.
     r = requests.get(imgurl, stream = True) 
     if r.status_code == 200:
-        r.raw.decode_content=True
-        shutil.copyfileobj(r.raw, imgpath)
+        for block in r.iter_content(1024):
+            imgfile.write(block)
         return True
     else:
         return False
+    imgfile.flush()
 
 @celeryapp.task
 def grade_test(examinfo):
-    errors = []
-    imgurls = examinfo['Image Urls']
-    test = examinfo['Test']
-    email = examinfo['Email']
-    page_answers = []
-    print(f'trying to grade from: {email} {test} ')
-    for i, imgurl in enumerate(imgurls):
-        page = i + 1
-        if page == 3 or page == 5:
-            boxes = [1,2]
-        else:
-            boxes = [1]
-        for box in boxes:
-            with tempfile.TemporaryFile() as imgpath:
-                download_success = download_image(imgurl, imgpath)
-                if download_success:
-                    grader = g.Grader()
-                    #TODO imgpath?? did we download ok?
-                    jsonData = grader.grade(imgpath, False, False, 1.0, test.lower(), box, page)
-                    data = json.loads(jsonData)
-                    print(data['answer']['bubbled'])
-                    if data['status'] == 0:
-                        page_answers.append(data['answer']['bubbled'])
+    try:
+        errors = []
+        imgurls = examinfo['Image Urls']
+        test = examinfo['Test']
+        email = examinfo['Email']
+        page_answers = []
+        print(f'trying to grade from: {email} {test} ')
+        for i, imgurl in enumerate(imgurls):
+            page = i + 1
+            if page == 3 or page == 5:
+                boxes = [1,2]
+            else:
+                boxes = [1]
+            for box in boxes:
+                with tempfile.TemporaryDirectory() as tmpdirname:
+                    imgpath = f'{tmpdirname}/tmpimg'
+                    with open(imgpath, 'wb') as imgfile:
+                        download_success = download_image(imgurl, imgfile)
+                    if download_success:
+                        grader = g.Grader()
+                        jsonData = grader.grade(imgpath, False, False, 1.0, test.lower(), box, page)
+                        data = json.loads(jsonData)
+                        print(data['answer']['bubbled'])
+                        if data['status'] == 0:
+                            page_answers.append(data['answer']['bubbled'])
+                        else:
+                            errors.append(data['error'])
                     else:
-                        errors.append(data['error'])
-                else:
-                    errors.append('Unable to download {imgurl}')
-    if len(errors) > 0:
-        send_error_message(email, errors)
-    else:
-        upload_to_database(examinfo, page_answers)
+                        errors.append('Unable to download {imgurl}')
+        if len(errors) > 0:
+            send_error_message(email, messagelines=errors.insert(0, 'Unable to process test. Errors:'))
+        else:
+            upload_to_database(examinfo, page_answers)
+    except:
+        send_error_message(adminemail, 'Grader System Error', [traceback.format_exc()])
+        student_message ='Sorry, our system was unable to grade your test. ' +\
+                         'Don\'t worry, it is us, not you. ' +\
+                         'We will let you know when the problem is resolved.' 
+        send_error_message(email, 'Grader System Error',[student_message])
 
-def send_error_message(email, errors):
+def send_error_message(email, subject='We had trouble grading your recent test.', messagelines=[]):
     
     msg = EmailMessage()
-    msg['Subject'] = 'We had trouble grading your recent test.'
+    msg['Subject'] = subject
     msg['From'] = 'adminvpt@studypoint.com'
     msg['To'] = email
-    msg.set_content('Unable to process test. Errors:' + '\n'.join(errors))
+    msg.set_content('\n'.join(messagelines))
     context = ssl.create_default_context()
     try:
         s = smtplib.SMTP(host=SMTP_HOST, port=SMTP_PORT)
@@ -157,7 +167,7 @@ def handle_grader_message():
     'Test ID': flask.request.form['Field15'],
     'Image Urls': imageurls
     }
-    print(f'examinfo: {examinfo}'
+    print(f'examinfo: {examinfo}')
     grade_test.delay(examinfo)
     return flask.Response(status=202)
 
