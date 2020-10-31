@@ -135,6 +135,11 @@ class Grader:
         re_y = re.compile('(_|^)y(_|$)')
         
         self.scale_config_r(config, x_scale, y_scale, re_x, re_y)
+    
+    def format_error(self, data):
+        print(f"{data['errors']}, {data['status']}") 
+        return json.dumps(data)
+
 
     def grade(self, image_name, verbose_mode, debug_mode, scale, test, page_number, box_number = 1):
         """
@@ -167,13 +172,13 @@ class Grader:
             except ValueError:
                 data['status'] = 1
                 data['error'] = f'Scale {scale} must be of type float'
-                return json.dump(data, sys.stdout)
+                return format_error(data)
 
         # Verify that scale is positive.
         if scale <= 0:
             data['status'] = 1
             data['error'] = f'Scale {scale} must be positive'
-            return json.dump(data, sys.stdout)
+            return format_error(data)
 
 
         # Load image. 
@@ -181,14 +186,14 @@ class Grader:
         if im is None:
             data['status'] = 1
             data['error'] = f'Image {image_name} not found'
-            return json.dump(data, sys.stdout)
+            return format_error(data)
 
         # Find largest box within image.
         page = self.find_page(im)
         if page is None:
-            data['status'] = 1
+            data['status'] = 2
             data['error'] = f'Page not found in {image_name}'
-            return json.dump(data, sys.stdout) 
+            return format_error(data) 
         if debug_mode:
             cv.imshow('', page)
             cv.waitKey()
@@ -211,7 +216,7 @@ class Grader:
         except FileNotFoundError:
             data['status'] = 1
             data['error'] = f'Configuration file {config_fname} not found'
-            return json.dump(data, sys.stdout)
+            return format_error(data)
 
         # Parse config file.
         parser = config_parser.Parser(config, config_fname)
@@ -219,7 +224,7 @@ class Grader:
         if status == 1:
             data['status'] = 1
             data['error'] = error
-            return json.dump(data, sys.stdout)
+            return format_error(data)
 
         # Scale config values based on page size.
         self.scale_config(config, page.shape[1], page.shape[0])  
@@ -229,7 +234,7 @@ class Grader:
         if page is None:
             data['status'] = 1
             data['error'] = f'Could not upright page in {image_name}'
-            return json.dump(data, sys.stdout)
+            return format_error(data)
 
         # Grade each test box and add result to data.
         for box_config in config['boxes']:

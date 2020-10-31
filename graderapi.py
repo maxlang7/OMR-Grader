@@ -72,10 +72,18 @@ def download_image(imgurl, imgfile):
         return False
     imgfile.flush()
 
+def handle_system_error(email, adminerrors):
+    send_error_message(adminemail, 'Grader System Error', adminerrors)
+    student_message = 'Sorry, our system was unable to grade your test. ' +\
+                      'Don\'t worry, it is us, not you. ' +\
+                      'We will let you know when the problem is resolved.' 
+    send_error_message(email, 'Grader System Error',[student_message]) 
+
 @celeryapp.task
 def grade_test(examinfo):
     try:
-        errors = []
+        usererrors = []
+        adminerrors = []
         imgurls = examinfo['Image Urls']
         test = examinfo['Test']
         email = examinfo['Email']
@@ -99,20 +107,22 @@ def grade_test(examinfo):
                         print(data['answer']['bubbled'])
                         if data['status'] == 0:
                             page_answers.append(data['answer']['bubbled'])
+                        elif data['status'] == 1:
+                            adminerrors.append(data['error'])
+                        elif data['status'] == 2:
+                            usererrors.append(data['error'])
                         else:
-                            errors.append(data['error'])
+                            adminerrors.append(data['error'])
                     else:
-                        errors.append('Unable to download {imgurl}')
-        if len(errors) > 0:
-            send_error_message(email, messagelines=errors.insert(0, 'Unable to process test. Errors:'))
-        else:
+                        adminerrors.append('Unable to download {imgurl}')
+        if len(usererrors) > 0:
+            send_error_message(email, messagelines=usererrors.insert(0, 'Unable to process test. Errors:'))
+        if len(adminerrors) > 0:
+            handle_system_error(email, adminerrors)
+        if len(adminerrors) > 0 and len(usererrors) > 0:
             upload_to_database(examinfo, page_answers)
     except:
-        send_error_message(adminemail, 'Grader System Error', [traceback.format_exc()])
-        student_message ='Sorry, our system was unable to grade your test. ' +\
-                         'Don\'t worry, it is us, not you. ' +\
-                         'We will let you know when the problem is resolved.' 
-        send_error_message(email, 'Grader System Error',[student_message])
+        handle_system_error(email, [traceback.format_exc()])
 
 def send_error_message(email, subject='We had trouble grading your recent test.', messagelines=[]):
     
