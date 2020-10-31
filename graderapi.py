@@ -159,7 +159,8 @@ def handle_grader_message():
         print('Success, form is secure')
     else: 
         print(flask.request.form['HandshakeKey'])
-        raise InvalidUsage("Invalid submission", status_code=418)
+        flask.abort(418)
+
     test = flask.request.form['Field6']
     if test == 'ACT':
         fields = [17]
