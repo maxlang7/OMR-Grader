@@ -172,13 +172,13 @@ class Grader:
             except ValueError:
                 data['status'] = 1
                 data['error'] = f'Scale {scale} must be of type float'
-                return format_error(data)
+                return self.format_error(data)
 
         # Verify that scale is positive.
         if scale <= 0:
             data['status'] = 1
             data['error'] = f'Scale {scale} must be positive'
-            return format_error(data)
+            return self.format_error(data)
 
 
         # Load image. 
@@ -186,14 +186,14 @@ class Grader:
         if im is None:
             data['status'] = 1
             data['error'] = f'Image {image_name} not found'
-            return format_error(data)
+            return self.format_error(data)
 
         # Find largest box within image.
         page = self.find_page(im)
         if page is None:
             data['status'] = 2
             data['error'] = f'Page not found in {image_name}'
-            return format_error(data) 
+            return self.format_error(data) 
         if debug_mode:
             cv.imshow('', page)
             cv.waitKey()
@@ -216,7 +216,7 @@ class Grader:
         except FileNotFoundError:
             data['status'] = 1
             data['error'] = f'Configuration file {config_fname} not found'
-            return format_error(data)
+            return self.format_error(data)
 
         # Parse config file.
         parser = config_parser.Parser(config, config_fname)
@@ -224,7 +224,7 @@ class Grader:
         if status == 1:
             data['status'] = 1
             data['error'] = error
-            return format_error(data)
+            return self.format_error(data)
 
         # Scale config values based on page size.
         self.scale_config(config, page.shape[1], page.shape[0])  
@@ -234,7 +234,7 @@ class Grader:
         if page is None:
             data['status'] = 1
             data['error'] = f'Could not upright page in {image_name}'
-            return format_error(data)
+            return self.format_error(data)
 
         # Grade each test box and add result to data.
         for box_config in config['boxes']:

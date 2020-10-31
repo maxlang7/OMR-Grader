@@ -358,7 +358,9 @@ class TestBox:
         for contour in contours:
             if self.is_box(contour, thresh_page):
                 if not self.similar_box_found(contour, potential_boxes):
-                    potential_boxes.append(contour)
+                    potential_boxes.append(contour) 
+        if len(potential_boxes) == 0:
+            return None
         #sorting potential boxes by y position
         boundingBoxes = [cv.boundingRect(box) for box in potential_boxes]
         (potential_boxes, boundingBoxes) = zip(*sorted(zip(potential_boxes, boundingBoxes), key=lambda b:b[1][1]))
@@ -869,6 +871,10 @@ class TestBox:
         }
         # Find box, find bubbles in box, then grade bubbles.
         gradable_box = self.get_box()
+        if gradable_box is None:
+            data['status'] = 2
+            data['error'] = f'We were unable to find any boxes on page {page_number}.'
+            return data
         for (treatment) in enumerate(['','erase_lines']):
             self.init_result_structures()
             if treatment == 'erase_lines':
