@@ -33,8 +33,10 @@ SMTP_USERNAME=os.getenv('SMTP_USERNAME')
 SMTP_PASSWORD=os.getenv('SMTP_PASSWORD')
 SMTP_PORT=os.getenv('SMTP_PORT')
 
+#TODO JASON TALK: confirm foreign key relationships in database, permissions to delete etc.
 #TODO .Heic
-
+#TODO If uploaded wrong page to wrong upload, then we can try it agianst other configs to see if they match.
+#TODO IMPORTANT: Make better error message for bad image that we can't find a box on. (see mom maybe)
 #uploads parsed test data to database
 def upload_to_database(examinfo, page_answers):
     conn = pyodbc.connect('Driver={ODBC Driver 17 for SQL Server};'
@@ -50,16 +52,17 @@ def upload_to_database(examinfo, page_answers):
                    "values (?,?,?,?,?,?)", examinfo['First Name'], examinfo['Last Name'], 
                    examinfo['Email'], examinfo['Test'], examinfo['Test ID'], json.dumps(page_answers))
     cursor.execute("SELECT @@IDENTITY")
-    submission_id = int(cursor.fetchone()[0])
 
+    submission_id = int(cursor.fetchone()[0])
+    print(f'created subission id {submission_id}')
     for pagecounter, page in enumerate(page_answers):
+        print(f'Inserting answers for page {pagecounter} right meow')
+        
         for qnum, answer in page.items():
             cursor.execute("insert into Grader_Submissions_Answers "\
                         "(Submission_ID, Test_Section, Test_Question_Number, Test_Question_Answer)" \
                         " values (?,?,?,?)", submission_id, pagecounter+1, qnum, answer)
     conn.commit()
-
-#pages don't all start with 1, so we need to handle that situation
 
 def download_image(imgurl, imgfile):
     #dowloads the imgurl and writes it into imgfile.
@@ -88,7 +91,7 @@ def grade_test(examinfo):
         test = examinfo['Test']
         email = examinfo['Email']
         page_answers = []
-        print(f'trying to grade from: {email} {test} ')
+        print(f'trying to grade from: {email} {test}')
         for i, imgurl in enumerate(imgurls):
             page = i + 1
             if page == 3 or page == 5:
@@ -101,6 +104,7 @@ def grade_test(examinfo):
                     with open(imgpath, 'wb') as imgfile:
                         download_success = download_image(imgurl, imgfile)
                     if download_success:
+                        print(f'Wrote image into temporary file succesfully. Grading page {page} box {box}')
                         grader = g.Grader()
                         jsonData = grader.grade(imgpath, False, False, 1.0, test.lower(), page, box)
                         data = json.loads(jsonData)
@@ -116,11 +120,15 @@ def grade_test(examinfo):
                     else:
                         adminerrors.append('Unable to download {imgurl}')
         if len(usererrors) > 0:
-            send_error_message(email, messagelines=usererrors.insert(0, 'Unable to process test. Errors:'))
+            usererrors.insert(0, 'Unable to process test. Errors:')
+            send_error_message(email, messagelines=usererrors)
         if len(adminerrors) > 0:
             handle_system_error(email, adminerrors)
-        if len(adminerrors) > 0 and len(usererrors) > 0:
+        if len(adminerrors) == 0 and len(usererrors) == 0:
+            print('No adminerrors or usererrors, uploading to database meow.')
             upload_to_database(examinfo, page_answers)
+        else:
+            print('Tell me whats going on right meow!. How did we get here?')
     except:
         handle_system_error(email, [traceback.format_exc()])
 
