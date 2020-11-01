@@ -78,11 +78,21 @@ class ExampleImageTests(unittest.TestCase):
         data = json.loads(jsonData)
         self.assertEqual(list(data['answer']['bubbled'].values()), ['D', 'B', 'A', 'A', 'D', 'A', 'D', 'B', 'B', 'D', 'D', 'D', 'A', 'D', 'D', 'A', 'C', 'C', 'A', 'B', 'C', 'B', 'B', 'B', 'C', 'B', 'D', 'D', 'B', 'B', 'C', 'B', 'B', 'A', 'C', 'A', 'B', 'C', 'A', 'A', 'B', 'D', 'D', 'B', 'A', 'B', 'C', 'A', 'C', 'B', 'D', 'A'])
     
+    def test_page1c(self):
+        grader = g.Grader()
+        jsonData = grader.grade('test/images/sat_test1c.JPG', self.debug_mode, self.verbose_mode, 1.0, 'sat', 1)
+        data = json.loads(jsonData)
+        self.assertEqual(len(list(data['answer']['bubbled'].values())),52)        
+        self.assertEqual(list(data['answer']['bubbled'].values()), 'D C B D A D D A B C C D D'.split(' ') +
+                                                                    'C D D C B C A C A D A B C'.split(' ') +
+                                                                    'B D D C D B A B C A D D B'.split(' ') +
+                                                                    'A C C C A B D D B B D B A'.split(' ') )
+    
     def test_jpgtest(self):
         grader = g.Grader()
         jsonData = grader.grade('test/images/sat_test1a.jpg', self.debug_mode, self.verbose_mode, 1.0, 'sat', 1)
         data = json.loads(jsonData)
-        self.assertEqual(list(data['answer']['bubbled'].values()), ['D', 'B', 'A', 'A', 'D', 'A', 'D', 'B', 'B', 'D', 'D', 'D', 'A', 'D', 'D', 'A', 'C', 'C', 'A', 'B', 'C', 'B', 'B', 'B', 'C', 'B', 'D', 'D', 'B', 'B', 'C', 'B', 'B', 'A', 'C', 'A', 'B', 'C', 'A', 'A', 'B', 'D', 'D', 'B', 'A', 'B', 'C', 'A', 'C', 'B', 'D', 'A'])
+
 
     def test_heictest(self):
         grader = g.Grader()
@@ -123,6 +133,17 @@ class ExampleImageTests(unittest.TestCase):
                                                     'D A B D C C C A C'.split(' ') +
                                                     'B B B B D B B D B'.split(' ') +
                                                     'B D C D B C D D'.split(' ') )
+    def test_page2c(self):
+        grader = g.Grader()
+        jsonData = grader.grade('test/images/sat_test2c.JPG', self.debug_mode, self.verbose_mode, 1.0, 'sat', 2)
+        data = json.loads(jsonData)
+
+        self.assertEqual(len(list(data['answer']['bubbled'].values())),44)        
+        self.assertEqual(list(data['answer']['bubbled'].values()), 'D C C B D C C A'.split(' ') +
+                                                    'D A B D C C A A B'.split(' ') +
+                                                    'D B A D C C C B C'.split(' ') +
+                                                    'D D D D D D A D B'.split(' ') +
+                                                    'B D B D D D A D'.split(' ') )
  
     def test_page3_box2a(self):
         grader = g.Grader()
@@ -163,7 +184,28 @@ class ExampleImageTests(unittest.TestCase):
                                                     'B B B'.split(' ') +
                                                     'C D A'.split(' ') +
                                                     'B B D'.split(' ') +
-                                                    'C D B'.split(' ') ) 
+                                                    'C D B'.split(' ') )
+
+    def test_page3_box2c(self):
+        grader = g.Grader()
+        jsonData = grader.grade('test/images/sat_test3c.JPG', self.debug_mode, self.verbose_mode, 1.0, 'sat', 3, 2)
+        data = json.loads(jsonData)
+
+        self.assertEqual(len(list(data['answer']['bubbled'].values())),5)
+        self.assertEqual(list(data['answer']['bubbled'].values()), ['-', '-', '-', '-', 2.4] ) 
+
+
+    def test_page3c(self):
+        grader = g.Grader()
+        jsonData = grader.grade('test/images/sat_test3c.JPG', self.debug_mode, self.verbose_mode, 1.0, 'sat', 3, 1)
+        data = json.loads(jsonData)
+
+        self.assertEqual(len(list(data['answer']['bubbled'].values())),15)
+        self.assertEqual(list(data['answer']['bubbled'].values()), 'D A C'.split(' ') +
+                                                    'D B A'.split(' ') +
+                                                    'C D B'.split(' ') +
+                                                    'C A B'.split(' ') +
+                                                    'C B C'.split(' ') )
 
     def test_page4a(self):
         grader = g.Grader()
@@ -188,6 +230,17 @@ class ExampleImageTests(unittest.TestCase):
                                                     'A D D B A C'.split(' ') +
                                                     'A A D A B D'.split(' ') +
                                                     'B A D A D B'.split(' ') )
+    def test_page4c(self):
+        grader = g.Grader()
+        jsonData = grader.grade('test/images/sat_test4c.JPG', self.debug_mode, self.verbose_mode, 1.0, 'sat', 4)
+        data = json.loads(jsonData)
+
+        self.assertEqual(len(list(data['answer']['bubbled'].values())),30)
+        self.assertEqual(list(data['answer']['bubbled'].values()), 'A C A C A D'.split(' ') +
+                                                    'C B '-' A B B'.split(' ') +
+                                                    'C C B A D B'.split(' ') +
+                                                    'C A D B C C'.split(' ') +
+                                                    'D C A B C A'.split(' ') )
     
     def test_page5_box2a(self):
         grader = g.Grader()
@@ -218,5 +271,21 @@ class ExampleImageTests(unittest.TestCase):
         data = json.loads(jsonData)
         self.assertEqual(len(list(data['answer']['bubbled'].values())),3)
         self.assertEqual(list(data['answer']['bubbled'].values()), ['-', 34.0, '-'])
+    
+    def test_page5_box2c(self):
+        grader = g.Grader()
+        jsonData = grader.grade('test/images/sat_test5c.JPG', self.debug_mode, self.verbose_mode, 1.0, 'sat', 5, 2)
+        data = json.loads(jsonData)
+        self.assertEqual(len(list(data['answer']['bubbled'].values())),3)
+        self.assertEqual(list(data['answer']['bubbled'].values()), ['-', 34.0, '-'])
+
+    def test_page5c(self):
+        grader = g.Grader()
+        jsonData = grader.grade('test/images/sat_test5c.png', self.debug_mode, self.verbose_mode, 1.0, 'sat', 5, 1)
+        data = json.loads(jsonData)
+
+        self.assertEqual(len(list(data['answer']['bubbled'].values())),5)
+        self.assertEqual(list(data['answer']['bubbled'].values()), [102.0, 2.0, '-', 2.36, '-'])
+    
 if __name__ == '__main__':
     unittest.main()
