@@ -354,23 +354,20 @@ class TestBox:
             cv.CHAIN_APPROX_SIMPLE)
         potential_boxes = []
         # Iterate through contours until the correct box is found.
-        #try to handle case 1a, where there is one big outer box and smaller ones inside of it and one of the smaller ones actually contains the bubbles.
         for contour in contours:
             if self.is_box(contour, thresh_page):
                 if not self.similar_box_found(contour, potential_boxes):
                     potential_boxes.append(contour) 
-        if len(potential_boxes) == 0:
-            return None
-        #sorting potential boxes by y position
-        boundingBoxes = [cv.boundingRect(box) for box in potential_boxes]
-        (potential_boxes, boundingBoxes) = zip(*sorted(zip(potential_boxes, boundingBoxes), key=lambda b:b[1][1]))
-
+      
         # If is_box doesn't find a box of the right size, accept the page as the box. 
         if len(potential_boxes) == 0:
-            raise BoxNotFoundError('No box found on the page')
+            raise BoxNotFoundError('No boxes found')
         elif len(potential_boxes) < self.box_to_grade:
-            raise BoxNotFoundError('Not enough boxes found on the page')
-        else:                
+            raise BoxNotFoundError('Not enough boxes found')
+        else: 
+            #sorting potential boxes by y position
+            boundingBoxes = [cv.boundingRect(box) for box in potential_boxes]
+            (potential_boxes, boundingBoxes) = zip(*sorted(zip(potential_boxes, boundingBoxes), key=lambda b:b[1][1]))   
             return utils.get_transform(potential_boxes[self.box_to_grade - 1], thresh_page)
         
     def init_questions(self):
@@ -870,10 +867,13 @@ class TestBox:
             'error': ''
         }
         # Find box, find bubbles in box, then grade bubbles.
-        gradable_box = self.get_box()
-        if gradable_box is None:
+        try:
+            gradable_box = self.get_box()
+        except BoxNotFoundError:
             data['status'] = 2
-            data['error'] = f'We were unable to find any boxes on page {page_number}.'
+            data['error'] = f'page: {page_number}\n Could not find the border around the page.\# %%' + \
+            'We need this border to straighten and scale the image before grading.\n' + \
+            'Please refer to the example doucment and resubmit.'
             return data
         for (treatment) in enumerate(['','erase_lines']):
             self.init_result_structures()
