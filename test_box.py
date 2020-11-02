@@ -327,6 +327,8 @@ class TestBox:
         if (w*h >= .1 * page_height * page_width and 
             w > .5 * page_width and 
             self.box_contains_bubbles(contour, page)):
+            if self.debug_mode:
+                print(f'{w}:{h} {w/h}')
             return True
         else:
             return False
