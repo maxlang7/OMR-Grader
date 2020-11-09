@@ -5,20 +5,31 @@ import json
 import re
 import cv2 as cv
 from imutils.perspective import four_point_transform
-
+import numpy as np
 import config_parser
 from test_box import TestBox
 import utils
 
 
 class Grader:
+    def __init__(self):
+        self.config = None
 
-    def find_page(self, im):
+
+    def get_contour_width(self, contour):
+        _, _, w, _ = cv.boundingRect(contour)
+        return w
+    
+    def sort_contours_by_width(self, contours):
+        return sorted(contours, key=lambda x: self.get_contour_width(x), reverse=True)
+    
+    def find_page(self, im, test, debug_mode):
         """
         Finds and returns the outside box that contains the entire test. Will use this to scale the given image.
 
         Args:
             im (numpy.ndarray): An ndarray representing the entire test image.
+            test (string): A string saying what type of test we are trying to grade (sat, act, etc)
 
         Returns:
             numpy.ndarray: An ndarray representing the test box in the image.
@@ -31,23 +42,102 @@ class Grader:
         # Find contour for entire page. 
         contours, _ = cv.findContours(threshold, cv.RETR_EXTERNAL, 
             cv.CHAIN_APPROX_SIMPLE)
-        contours = sorted(contours, key=cv.contourArea, reverse=True)
-
-        if len(contours) > 0:
+        if test == 'sat':
+            contours = sorted(contours, key=cv.contourArea, reverse=True)
+            if len(contours) > 0:
             # Approximate the contour.
-            for contour in contours:
-                peri = cv.arcLength(contour, True)
-                approx = cv.approxPolyDP(contour, 0.02 * peri, True)
+                for contour in contours:
+                    peri = cv.arcLength(contour, True)
+                    approx = cv.approxPolyDP(contour, 0.02 * peri, True)
 
-                # Verify that contour has four corners.
-                if len(approx) == 4:
-                    page = approx
-                    break
+                    # Verify that contour has four corners.
+                    if len(approx) == 4:
+                        page = approx
+                        break
+        elif test == 'act':
+            contours = self.sort_contours_by_width(contours)
+            """
+            We are tyring to make a top and bottom line into a box that we can four point transform
+            We are finding the min length of the first six lines (that is the minimum we could get)
+            and find the one with the largest y position (closest to the bottom) 
+            that is at least 80% of the first 6 minimum line we calculated before
+            """
+            line_contours = self.get_line_contours(contours[:11])
+            tx, ty, tw, _h = cv.boundingRect(line_contours[0])
+            bx, by, bw, _h = cv.boundingRect(line_contours[-1])
+            page = np.array(([tx,ty],[tx+tw,ty],[bx,by],[bx+bw,by]), dtype=np.int32)
+
+
+            if debug_mode:
+                colorim = cv.cvtColor(imgray, cv.COLOR_GRAY2BGR)
+                cv.drawContours(colorim, contours[:12], -1, (133,255,255), 3)
+                print([self.get_contour_width(c) for c in contours[:12]])
+                cv.imshow('', colorim)
+                cv.waitKey()
         else:
+            #TODO when we add more tests, extend these errors and if block
+            raise f'We currently only support sat and act (lowercase) not {test}'
+
+        
+        if page is None:
             return None
 
         # Apply perspective transform to get top down view of page.
-        return four_point_transform(imgray, page.reshape(4, 2))
+        transformed_image = four_point_transform(imgray, page.reshape(4, 2))
+        cv.imshow('', transformed_image)
+        cv.waitKey()
+        if test == 'act':
+            transformed_image = self.act_draw_boxes(transformed_image)
+            
+        return transformed_image
+
+
+    def act_draw_boxes(self, image):
+        """
+        Converts top and bottom lines into boxes and draws them onto the page
+
+        """
+        threshold = utils.get_threshold(image)
+        contours, _ = cv.findContours(threshold, cv.RETR_EXTERNAL, 
+            cv.CHAIN_APPROX_SIMPLE)
+        contours = self.sort_contours_by_width(contours)
+        line_contours = self.get_line_contours(contours[:12])
+
+            
+        tx, ty, tw, _h = cv.boundingRect(line_contours[0])
+        bx, by, bw, _h = cv.boundingRect(line_contours[-1])
+        page_y_dif = by - ty 
+        min_box_height = page_y_dif/(len(self.config['boxes'])+1)/2
+        prev_contour = line_contours[0]
+        boxes_to_draw = []
+        for c in line_contours:
+            # calculating height by finding difference between y values.
+            current_box_height = cv.boundingRect(c)[1] - cv.boundingRect(prev_contour)[1]
+            if current_box_height > min_box_height:
+                tx, ty, tw, _h = cv.boundingRect(prev_contour)
+                bx, by, bw, _h = cv.boundingRect(c)
+                boxes_to_draw.append(np.array(([tx,ty],[tx+tw,ty],[bx+bw,by], [bx,by]), dtype=np.int32))
+            prev_contour = c
+        
+        cv.drawContours(image, boxes_to_draw, -1, 0, 3)
+        cv.imshow('', image)
+        cv.waitKey()
+        return image
+
+
+    def get_line_contours(self, contours):
+        #sorts contours by y position
+        line_contours = []
+        min_line_length = self.get_contour_width(contours[5])*0.8
+        # We are looping through the contours that are sorted by y position. 
+        # keeps only those that are about right length
+        for c in sorted(contours, key=lambda y: cv.boundingRect(y)[1], reverse=False): #the contours sorted by y postion on page
+            _, _, w, _ = cv.boundingRect(c)
+            if w >= min_line_length:
+                line_contours.append(c)
+        return line_contours
+
+
 
     def image_is_upright(self, page, config):
         """
@@ -140,6 +230,34 @@ class Grader:
         print(f"{data['errors']}, {data['status']}") 
         return json.dumps(data)
 
+    def initialize_config(self, test, page_number, box_number):
+        
+        #Identify configuration file  
+        if box_number == 1:
+            config_fname = (os.path.dirname(os.path.abspath(__file__)) 
+            + f'/config/{test}_page{page_number}.json')
+        else:
+            config_fname = (os.path.dirname(os.path.abspath(__file__)) 
+            + f'/config/{test}_page{page_number}_box{box_number}.json')
+
+
+        # Read config file into dictionary and scale values. Check for duplicate
+        # keys with object pairs hook.
+        try:
+            with open(config_fname) as file:
+                config = json.load(file, 
+                    object_pairs_hook=config_parser.duplicate_key_check)
+        except FileNotFoundError:
+            return f'Configuration file {config_fname} not found'
+
+        # Parse config file.
+        parser = config_parser.Parser(config, config_fname)
+        self.config =  config
+        status, error = parser.parse()
+        if status == 1:
+            return error 
+
+        return None
 
     def grade(self, image_name, verbose_mode, debug_mode, scale, test, page_number, box_number = 1):
         """
@@ -180,7 +298,6 @@ class Grader:
             data['error'] = f'Scale {scale} must be positive'
             return self.format_error(data)
 
-
         # Load image. 
         im = cv.imread(image_name)
         if im is None:
@@ -188,47 +305,26 @@ class Grader:
             data['error'] = f'Image {image_name} not found'
             return self.format_error(data)
 
+        config_error = self.initialize_config(test, page_number, box_number)
+        if config_error is not None:
+            data['status'] = 1
+            data['error'] = config_error
+            return self.format_error(data)
+        else:
+            config = self.config
+
         # Find largest box within image.
-        page = self.find_page(im)
+        page = self.find_page(im, test, debug_mode)
         if page is None:
             data['status'] = 2
             data['error'] = f'Page not found in {image_name}'
             return self.format_error(data) 
         if debug_mode:
-            cv.imshow('', page)
+            cv.imshow('', page) 
             cv.waitKey()
 
-        #Identify configuration file  
-        if box_number == 1:
-            config_fname = (os.path.dirname(os.path.abspath(__file__)) 
-            + f'/config/{test}_page{page_number}.json')
-        else:
-            config_fname = (os.path.dirname(os.path.abspath(__file__)) 
-            + f'/config/{test}_page{page_number}_box{box_number}.json')
-
-
-        # Read config file into dictionary and scale values. Check for duplicate
-        # keys with object pairs hook.
-        try:
-            with open(config_fname) as file:
-                config = json.load(file, 
-                    object_pairs_hook=config_parser.duplicate_key_check)
-        except FileNotFoundError:
-            data['status'] = 1
-            data['error'] = f'Configuration file {config_fname} not found'
-            return self.format_error(data)
-
-        # Parse config file.
-        parser = config_parser.Parser(config, config_fname)
-        status, error = parser.parse()
-        if status == 1:
-            data['status'] = 1
-            data['error'] = error
-            return self.format_error(data)
-
-        # Scale config values based on page size.
-        self.scale_config(config, page.shape[1], page.shape[0])  
-
+         # Scale config values based on page size.
+        self.scale_config(config, page.shape[1], page.shape[0])
         # Rotate page until upright.
         page = self.upright_image(page, config)
         if page is None:
