@@ -48,7 +48,7 @@
   - name: add swap file
     block:
     - name: allocate the file
-      command: fallocate -l 1G /swapfile
+      command: fallocate -l 500M /swapfile
     - name: format the file for swap
       command: mkswap /swapfile
     - name: change swap file permissions
