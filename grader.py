@@ -23,6 +23,29 @@ class Grader:
     def sort_contours_by_width(self, contours):
         return sorted(contours, key=lambda x: self.get_contour_width(x), reverse=True)
     
+    def get_first_and_last_points(self, contour, xy):
+        #Gets the first and last points of th econtour it is passed (element decides whether it sorts by x or y)
+        min_x = [3000000000, 0]
+        max_x = [-1, 0]
+        min_y = [0, 3000000000]
+        max_y = [0, -1]
+        
+        for point in contour:
+            px = point[0][0]
+            py = point[0][1]
+            if py < min_y[1]:
+                min_y = [px, py]
+            if px < min_x[0]:
+                min_x = [px, py]
+            if py > max_y[1]:
+                max_y = [px, py]
+            if px > max_x[0]:
+                max_x = [px, py]
+        if xy == 'x':
+            return min_x[0], min_x[1], max_x[0], max_x[1]
+        if xy == 'y':
+            return min_y[0], min_y[1], max_y[0], max_y[1]
+
     def find_page(self, im, test, debug_mode):
         """
         Finds and returns the outside box that contains the entire test. Will use this to scale the given image.
@@ -57,15 +80,25 @@ class Grader:
         elif test == 'act':
             contours = self.sort_contours_by_width(contours)
             """
-            We are tyring to make a top and bottom line into a box that we can four point transform
+            We are trying to make a top and bottom line into a box that we can four point transform
             We are finding the min length of the first six lines (that is the minimum we could get)
             and find the one with the largest y position (closest to the bottom) 
             that is at least 80% of the first 6 minimum line we calculated before
             """
             line_contours = self.get_line_contours(contours[:11])
-            tx, ty, tw, _h = cv.boundingRect(line_contours[0])
-            bx, by, bw, _h = cv.boundingRect(line_contours[-1])
-            page = np.array(([tx,ty],[tx+tw,ty],[bx,by],[bx+bw,by]), dtype=np.int32)
+            t1x, t1y, t2x, t2y = self.get_first_and_last_points(line_contours[0], 'x')
+            b1x, b1y, b2x, b2y = self.get_first_and_last_points(line_contours[-1], 'x')
+            """
+            EX:
+            t1            t2
+            .______________.
+            |              |
+            |              |
+            .______________.
+            b1             b2
+            """
+            
+            page = np.array(([t1x,t1y],[b1x,b1y], [b2x,b2y], [t2x,t2y]), dtype=np.int32)
 
 
             if debug_mode:
@@ -84,8 +117,9 @@ class Grader:
 
         # Apply perspective transform to get top down view of page.
         transformed_image = four_point_transform(imgray, page.reshape(4, 2))
-        cv.imshow('', transformed_image)
-        cv.waitKey()
+        if debug_mode:
+            cv.imshow('', transformed_image)
+            cv.waitKey()
         if test == 'act':
             transformed_image = self.act_draw_boxes(transformed_image)
             
@@ -119,9 +153,10 @@ class Grader:
                 boxes_to_draw.append(np.array(([tx,ty],[tx+tw,ty],[bx+bw,by], [bx,by]), dtype=np.int32))
             prev_contour = c
         
-        cv.drawContours(image, boxes_to_draw, -1, 0, 3)
-        cv.imshow('', image)
-        cv.waitKey()
+        # cv.drawContours(image, boxes_to_draw, -1, 0, 3)
+        
+        # cv.imshow('', image)
+        # cv.waitKey()
         return image
 
 
@@ -129,11 +164,12 @@ class Grader:
         #sorts contours by y position
         line_contours = []
         min_line_length = self.get_contour_width(contours[5])*0.8
+        max_line_length = self.get_contour_width(contours[5])*1.2
         # We are looping through the contours that are sorted by y position. 
         # keeps only those that are about right length
         for c in sorted(contours, key=lambda y: cv.boundingRect(y)[1], reverse=False): #the contours sorted by y postion on page
             _, _, w, _ = cv.boundingRect(c)
-            if w >= min_line_length:
+            if w >= min_line_length and w <= max_line_length:
                 line_contours.append(c)
         return line_contours
 

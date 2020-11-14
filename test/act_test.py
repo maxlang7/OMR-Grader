@@ -7,7 +7,7 @@ from wand.image import Image
 
 class ExampleActTests(unittest.TestCase):
     #turn both to true to see images.
-    verbose_mode = False
+    verbose_mode = True
     debug_mode = verbose_mode
 
     def test_act_page1(self):
@@ -22,7 +22,7 @@ class ExampleActTests(unittest.TestCase):
                                                                     'D A C C D D C B B A B D D'.split(' ') )
     def test_act_page1a(self):
         grader = g.Grader()
-        jsonData = grader.grade('test/images/act_test1a.jpg', self.debug_mode, self.verbose_mode, 1.0, 'sat', 1)
+        jsonData = grader.grade('test/images/act_test1a.jpg', self.debug_mode, self.verbose_mode, 1.0, 'act', 1)
         data = json.loads(jsonData)
         
         self.assertEqual(len(list(data['answer']['bubbled'].values())),215)        
@@ -32,7 +32,7 @@ class ExampleActTests(unittest.TestCase):
                                                                     'D A C C D D C B B A B D D'.split(' ') )    
     def test_act_page1b(self):
         grader = g.Grader()
-        jsonData = grader.grade('test/images/act_test1b.jpeg', self.debug_mode, self.verbose_mode, 1.0, 'sat', 1)
+        jsonData = grader.grade('test/images/act_test1b.jpeg', self.debug_mode, self.verbose_mode, 1.0, 'act', 1)
         data = json.loads(jsonData)
         self.assertEqual(len(list(data['answer']['bubbled'].values())),215)        
         self.assertEqual(list(data['answer']['bubbled'].values()), 'D C B D A D D A B C C D D'.split(' ') +
@@ -42,7 +42,7 @@ class ExampleActTests(unittest.TestCase):
     
     def test_act_page1c(self):
         grader = g.Grader()
-        jsonData = grader.grade('test/images/act_test1c.jpg', self.debug_mode, self.verbose_mode, 1.0, 'sat', 1)
+        jsonData = grader.grade('test/images/act_test1c.jpg', self.debug_mode, self.verbose_mode, 1.0, 'act', 1)
         data = json.loads(jsonData)
         self.assertEqual(len(list(data['answer']['bubbled'].values())),215)        
         self.assertEqual(list(data['answer']['bubbled'].values()), 'D C B D A D D A B C C D D'.split(' ') +

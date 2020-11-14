@@ -167,8 +167,8 @@ class TestBox:
         """
         (x, y, w, h) = cv.boundingRect(contour)
         aspect_ratio = w / float(h)
-        min_aspect_ratio = 0.8
-        max_aspect_ratio = 1.3
+        min_aspect_ratio = self.bubble_width/self.bubble_height * 0.8
+        max_aspect_ratio = self.bubble_width/self.bubble_height * 1.3
 
 
 
@@ -269,7 +269,6 @@ class TestBox:
                 if group_num is not None: 
                     bubbles[group_num].append(contour)
                     allbubbles.append(contour)
-                    #print(cv.boundingRect(contour)[2])
             else:
                 nonbubbles.append(contour)
  
@@ -291,18 +290,26 @@ class TestBox:
             return False
         im = threshold[y:y+h, x:x+w]
         im = cv.resize(im, None, fx=self.scale, fy=self.scale)
+        
+        #print("box", x, y, w, h)
+        im = utils.get_transform(box, threshold)
         if self.debug_mode:
             cv.imshow('', im)
             cv.waitKey()
-        #print("box", x, y, w, h)
-        im = utils.get_transform(box, threshold)
         contours, _ = cv.findContours(im, cv.RETR_EXTERNAL, 
             cv.CHAIN_APPROX_SIMPLE)
-
+        
+        colorim = cv.cvtColor(im, cv.COLOR_GRAY2BGR)
         for contour in contours:
+            if self.debug_mode:
+                #show the detected bubbles in blue.
+                cv.drawContours(colorim, contour, -1, (255,0,0), 3)
             if self.is_bubble(contour):
-                 bubbles.append(contour)
-
+                bubbles.append(contour)
+        if self.debug_mode:
+            print(len(contours))
+            cv.imshow('', colorim)
+            cv.waitKey()
         if len(bubbles) < self.min_bubbles_per_box:
             return False
         else:
