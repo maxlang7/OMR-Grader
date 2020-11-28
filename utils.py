@@ -19,12 +19,44 @@ def get_threshold(im):
             thresholded image.
 
     """
+    w, h = im.shape
+    neighborhood = int(w*h/30000)
+    if neighborhood % 2 == 0:
+        neighborhood = neighborhood - 1
     blurred = cv.GaussianBlur(im, (1, 1), 0)
     blurred = cv.bilateralFilter(blurred,5,50,50)
     threshold = cv.adaptiveThreshold(blurred,255,cv.ADAPTIVE_THRESH_GAUSSIAN_C,\
-            cv.THRESH_BINARY_INV, 91, 4)
+            cv.THRESH_BINARY_INV, neighborhood, 1)
     return threshold
 
+def get_euclidian_distance(point1, point2):
+    x_dif = point1[0] - point2[0]
+    y_dif = point1[1] - point2[1]
+    return math.sqrt(x_dif**2 + y_dif**2)
+
+def get_corner_points(im, approx):
+    """
+    Sometimes approxpolyDP picks out points that are not corners and makes the box not squareish.
+        So, we are going to pick out points that we know are the corners of the box.
+    """
+    page_height, page_width = im.shape
+    tl_point = approx[0][0]
+    tr_point = approx[0][0]
+    bl_point = approx[0][0]
+    br_point = approx[0][0]
+    for point_list in approx:
+        x = point_list[0][0]
+        y = point_list[0][1]
+        if get_euclidian_distance([0, 0], [x, y]) < get_euclidian_distance([0, 0], tl_point):
+            tl_point = [x, y]
+        if get_euclidian_distance([page_width, 0], [x, y]) < get_euclidian_distance([page_width, 0], tr_point):
+            tr_point = [x, y]
+        if get_euclidian_distance([0, page_height], [x, y]) < get_euclidian_distance([0, page_height], bl_point):
+            bl_point = [x, y]
+        if get_euclidian_distance([page_width, page_height], [x, y]) < get_euclidian_distance([page_width, page_height], br_point):
+            br_point = [x, y]
+    return np.array([[tl_point], [tr_point], [bl_point], [br_point]])
+        
 def get_transform(contour, im):
     """
     Returns the portion of an image bounded by a contour.
@@ -42,16 +74,16 @@ def get_transform(contour, im):
     epsilon_factor = 0.001
     approx = cv.approxPolyDP(contour, epsilon_factor * peri, True)
     #tries various epsilons to try to identify a rectangle (4 sides)
-    while approx.size != 8:
+    while approx.size > 20:
         approx = cv.approxPolyDP(contour, epsilon_factor * peri, True)
         epsilon_factor += 0.001
         if epsilon_factor > 1: break
-
-    if approx.size == 8:
-        return four_point_transform(im, approx.reshape(4, 2))
+    corner_points = get_corner_points(im, approx)
+    if corner_points.size == 8:
+        return four_point_transform(im, corner_points.reshape(4, 2))        
     else:
         #failed to transform... just returns the untransformed image
-        return im
+        return None
 
 
 def rotate_image(im, angle):

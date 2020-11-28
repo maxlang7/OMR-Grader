@@ -264,7 +264,6 @@ class TestBox:
         # Check if contour is bubble; if it is, add to its appropriate group.
         for contour in contours:
             if self.is_bubble(contour):
-               # what is the contour hierachy (skip contours at innermost level)
                 group_num = self.get_bubble_group(contour)
                 if group_num is not None: 
                     bubbles[group_num].append(contour)
@@ -281,6 +280,14 @@ class TestBox:
 
         return bubbles, nonbubbles
 
+    def mask_edges(self, im):
+        """
+        Draws a black contour around the very outside of our box so that we don't pick up a very outer contour.
+        """
+        im_height, im_width = im.shape
+        areas_to_erase = [np.array(([0, 0], [im_width, 0], [im_width, im_height], [0, im_height]))]
+        cv.drawContours(im, areas_to_erase, -1, 0, 10)
+        return im
     def box_contains_bubbles(self, box, threshold,):
         (x, y, w, h) = cv.boundingRect(box)
         bubbles = []
@@ -293,6 +300,7 @@ class TestBox:
         
         #print("box", x, y, w, h)
         im = utils.get_transform(box, threshold)
+        im = self.mask_edges(im)
         if self.debug_mode:
             cv.imshow('', im)
             cv.waitKey()
@@ -301,15 +309,15 @@ class TestBox:
         
         colorim = cv.cvtColor(im, cv.COLOR_GRAY2BGR)
         for contour in contours:
-            if self.debug_mode:
-                #show the detected bubbles in blue.
-                cv.drawContours(colorim, contour, -1, (255,0,0), 3)
+            # if self.debug_mode:
+            #     #show the detected bubbles in blue.
+            #     cv.drawContours(colorim, contour, -1, (255,0,0), 3)
             if self.is_bubble(contour):
                 bubbles.append(contour)
-        if self.debug_mode:
-            print(len(contours))
-            cv.imshow('', colorim)
-            cv.waitKey()
+        # if self.debug_mode:
+        #     print(len(contours))
+        #     cv.imshow('', colorim)
+        #     cv.waitKey()
         if len(bubbles) < self.min_bubbles_per_box:
             return False
         else:
@@ -332,7 +340,8 @@ class TestBox:
         page_height, page_width = page.shape
         #eliminating possible boxes based on area so we get the right box to grade.
         if (w*h >= .1 * page_height * page_width and 
-            w > .5 * page_width and 
+            w > .5 * page_width and
+            w*h <= .95 * page_height * page_width and
             self.box_contains_bubbles(contour, page)):
             if self.debug_mode:
                 print(f'{w}:{h} {w/h}')
@@ -348,7 +357,7 @@ class TestBox:
 
 
 
-    def get_box(self):
+    def get_box(self, box_num):
         """
         Finds and returns the contour for this test answer box.
 
@@ -363,7 +372,6 @@ class TestBox:
             cv.CHAIN_APPROX_SIMPLE)
         potential_boxes = []
         # Iterate through contours until the correct box is found.
-        #try to handle case 1a, where there is one big outer box and smaller ones inside of it and one of the smaller ones actually contains the bubbles.
         for contour in contours:
             if self.is_box(contour, thresh_page):
                 if not self.similar_box_found(contour, potential_boxes):
@@ -379,8 +387,13 @@ class TestBox:
             raise BoxNotFoundError('No box found on the page')
         elif len(potential_boxes) < self.box_to_grade:
             raise BoxNotFoundError('Not enough boxes found on the page')
-        else:                
-            return utils.get_transform(potential_boxes[self.box_to_grade - 1], thresh_page)
+        else:
+            if self.debug_mode:
+                colorbox = cv.cvtColor(thresh_page, cv.COLOR_GRAY2BGR)
+                cv.drawContours(colorbox, potential_boxes[box_num], -1, (255,0,255), 3)
+                cv.imshow('', colorbox)
+                cv.waitKey()                        
+            return utils.get_transform(potential_boxes[box_num], thresh_page)
         
     def init_questions(self):
         """
@@ -610,14 +623,11 @@ class TestBox:
         mask = cv.bitwise_and(box, box, mask=mask)
 
         total = cv.countNonZero(mask)
-        # We were using the max of the contour w and h before and any bubbles colored outside 
-        # the lines didn't have the right total area because their radiuses were too big.
-        _, _, w, h = cv.boundingRect(bubble)
-        area = math.pi * ((np.average([h, w])/2) ** 2)
+        area = cv.contourArea(bubble)
 
         return total / area
 
-    def format_answer(self, bubbled):
+    def format_answer(self, bubbled, question_num):
         """
         Formats the answer for this question (string of letters or numbers).
 
@@ -637,21 +647,38 @@ class TestBox:
             return bubbled
         elif self.type == 'letter':
             return ''.join([chr(int(c) + 65) for c in bubbled])
+        elif self.type == 'twolineletter':
+            letter_offset = 0
+            #if it is in an even number, then we have to offset the original letter because act's letters altrenate ABCD and FGHJ. 
+            #There is also no 'I', which makes it even more complicated
+            if (question_num - 1)% 2 == 1:
+                return_string = ''
+                for c in bubbled:
+                    if int(c) >= 3:
+                        letter_offset = 6
+                    else: 
+                        letter_offset = 5
+                    return_string += chr(int(c) + 65 + letter_offset)
+                return return_string
+            else:        
+                return ''.join([chr(int(c) + 65) for c in bubbled])
+
+                
     def find_contour_by_position(self, contours, expected_x, expected_y, bubble_width, bubble_height):
-        box = self.get_box()
+        #box = self.get_box()
         for contour in contours:
             x, y, w, h = cv.boundingRect(contour)
-            if ((w > bubble_width/2 and w < bubble_width*2) \
+            if ((w > bubble_width/2 and w < bubble_width) \
                or (h > bubble_height/2 and h < bubble_height*2)) \
                and w*h > bubble_height*bubble_width/3:
-                if abs(x - expected_x) < bubble_width*2 and abs(y - expected_y) < bubble_height/2:
-                    if self.debug_mode:
-                        #show the detected bubbles in yellow.
-                        colorbox = cv.cvtColor(box, cv.COLOR_GRAY2BGR)
-                        cv.drawContours(colorbox, contour, -1, (255,0,0), 3)
-                        cv.imshow('', colorbox)
-                        cv.waitKey()
-                        print(f'rescuing: {x, y, w, h}')
+                if abs(x - expected_x) < bubble_width and abs(y - expected_y) < bubble_height/2:
+                    # if self.debug_mode:
+                    #     #show the detected bubbles in yellow.
+                    #     colorbox = cv.cvtColor(box, cv.COLOR_GRAY2BGR)
+                    #     cv.drawContours(colorbox, contour, -1, (255,0,0), 3)
+                    #     cv.imshow('', colorbox)
+                    #     cv.waitKey()
+                    #     print(f'rescuing: {x, y, w, h}')
                     return contour 
                 
 
@@ -664,28 +691,31 @@ class TestBox:
         supplemented_bubbles = []
         expected_xs = []
         for contour in question_bubbles:
-            x, y, _, _ = cv.boundingRect(contour)
+            x, y, w, h = cv.boundingRect(contour)
             y_values.append(y)
-           
         expected_y = np.median(y_values)
         # use the good bubbles from the whole group to compute the expected X
-        for i in range(self.bubbles_per_q): 
+        for column in range(self.bubbles_per_q): 
             x_values = []
             for row in qgroup:
-                row_xs = []
+                bubble_values = []
                 for contour in row:
-                    x, y, _, _ = cv.boundingRect(contour)
-                    row_xs.append(x)
-                row_xs.sort()
-                if i < len(row):
-                    x_values.append(row_xs[i])
+                    x, y, w, h = cv.boundingRect(contour)
+                    bubble_values.append([x, y, w, h])
+                bubble_values.sort()
+                if column < len(row):
+                    x_values.append(bubble_values[column][0])
+
             expected_xs.append(np.median(x_values))
         expected_xs.sort()
         if self.debug_mode:
             print(f'expected_xs:{expected_xs} expected_y:{expected_y}')
-        # look through all the contours to try to find one around the right position
-        for i, expected_x in enumerate(expected_xs):
+        # look through all the contours to try to find one around the right positio
+        
+        for expected_x in expected_xs:
             foundbubble = False    
+            if math.isnan(expected_x):
+                continue
             for contour in question_bubbles:
                 x, y, w, h = cv.boundingRect(contour)
                 if np.absolute(expected_x - x) < self.bubble_width/2:
@@ -694,14 +724,21 @@ class TestBox:
                     if self.debug_mode:
                         print(f'rescuing bubble: x:{x} y:{y} w:{w} h:{h}')
                     break
-            #went through all contours and didn't find one that was around expected x so we try to look at see if it wasn't picked up as a bubble.
-            if foundbubble == False:
-                contour_to_rescue = self.find_contour_by_position(nonbubblecontours, expected_x, expected_y, self.bubble_width, self.bubble_height)
-                if contour_to_rescue is not None:
-                    x, y, w, h = cv.boundingRect(contour_to_rescue)
-                    if self.debug_mode:
-                        print(f'rescuing contour: x:{x} y:{y} w:{w} h:{h}')
-                    supplemented_bubbles.append(contour_to_rescue)
+            #went through all the bubbles and didn't find one that was around expected x so we build a new contour in the expected spot
+            if foundbubble == False and len(question_bubbles) > 0:
+                #it doesn't have to be the first, we just want a bubble so we can copy it ove rto a new location
+                bubble_to_translate = question_bubbles[0]
+                tx, ty, _, _ = cv.boundingRect(bubble_to_translate)
+                y_add = expected_y - ty
+                x_add = expected_x - tx
+                copycat_contour = []
+                for point in bubble_to_translate:
+                    copycat_contour.append([[point[0][0]+x_add, point[0][1]+y_add]])
+                npcopycat_contour = np.array(copycat_contour, dtype=np.int32)
+                x, y, w, h = cv.boundingRect(npcopycat_contour)
+                if self.debug_mode:
+                    print(f'rescuing contour: x:{x} y:{y} w:{w} h:{h}')
+                supplemented_bubbles.append(npcopycat_contour)
         return supplemented_bubbles
 
     def grade_question(self, question, question_num, group_num, box):
@@ -718,7 +755,7 @@ class TestBox:
         """
         bubbled = ''
         unsure = False
-
+        filled = False
         # If question is missing bubbles, mark as unsure.
         if len(question) != self.bubbles_per_q:
             unsure = True
@@ -738,21 +775,23 @@ class TestBox:
                 self.handle_unsure_question(question_num, group_num, box)
                 #bubbled = '?'
                 #break
-            with open('meow.txt', 'a') as file:
-                file.write(f'{sure},{round(percent_marked,3)}\n') 
+            
         if self.multiple_responses == False:
             # find the darkest bubble in a question
+            bubbled = ''
             if len(bubble_pcts) > 0:
                 darkest_index = np.argmax(bubble_pcts)
                 if bubble_pcts[darkest_index] > 0.66:
                     bubbled = str(darkest_index)
-        
+                    filled = True
+                with open('meow.txt', 'a') as file:
+                    file.write(f'{filled}, {round(bubble_pcts[darkest_index],3)}\n') 
 
         # Add image slice if program running in verbose mode and image slice not
         # already added.
         if self.verbose_mode and unsure == False:
             self.add_image_slice(question_num, group_num, box)
-        self.bubbled[question_num] = self.format_answer(bubbled)
+        self.bubbled[question_num] = self.format_answer(bubbled, question_num)
     
     def create_super_question(self, num_q_per_super_question, bubbled):
         """
@@ -859,13 +898,13 @@ class TestBox:
                 question_sorted = sorted(question, key = sorter)
                 # box is passed so we can draw the contours during debugging
                 clean_question = self.compress_overlapping_bubbles(question_sorted, box)
-                if len(clean_question) < self.bubbles_per_q and self.orientation == "left-to-right" : #and len(clean_question) > 0:
+                if len(clean_question) < self.bubbles_per_q and self.orientation == "left-to-right" and question_num <= self.num_questions : #and len(clean_question) > 0:
                     clean_question = self.rescue_expected_bubbles(qgroup, clean_question, nonbubbles)
                 clean_question = self.shrink_bubbles(clean_question, box)
                 if len(clean_question) > 0:
                     self.grade_question(clean_question, question_num, i, box)
 
-    def grade(self, page_number):
+    def grade(self, page_number, box_num):
         """
         Finds and grades a test box within a test image.
 
@@ -879,12 +918,12 @@ class TestBox:
             'error': ''
         }
         # Find box, find bubbles in box, then grade bubbles.
-        gradable_box = self.get_box()
+        gradable_box = self.get_box(box_num)
         if gradable_box is None:
             data['status'] = 2
-            data['error'] = f'We were unable to find any boxes on page {page_number}.'
+            data['error'] = f'We were unable to find any boxes on page {page_number}'
             return data
-        for (treatment) in enumerate(['','erase_lines']):
+        for (treatment) in enumerate(['', 'erase_lines']):
             self.init_result_structures()
             if treatment == 'erase_lines':
                 gradable_box = self.erase_lines(gradable_box)

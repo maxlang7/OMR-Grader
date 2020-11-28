@@ -60,8 +60,13 @@ class Grader:
         """
         # Convert image to grayscale then blur to better detect contours.
         imgray = cv.cvtColor(im, cv.COLOR_BGR2GRAY)
+        if debug_mode:
+            cv.imshow('', imgray)
+            cv.waitKey()
         threshold = utils.get_threshold(imgray)
-
+        if debug_mode:
+            cv.imshow('', threshold)
+            cv.waitKey()    
         # Find contour for entire page. 
         contours, _ = cv.findContours(threshold, cv.RETR_EXTERNAL, 
             cv.CHAIN_APPROX_SIMPLE)
@@ -97,14 +102,14 @@ class Grader:
             .______________.
             b1             b2
             """
-            
+            #TODO print page
             page = np.array(([t1x,t1y],[b1x,b1y], [b2x,b2y], [t2x,t2y]), dtype=np.int32)
 
 
             if debug_mode:
                 colorim = cv.cvtColor(imgray, cv.COLOR_GRAY2BGR)
-                cv.drawContours(colorim, contours[:12], -1, (133,255,255), 3)
-                print([self.get_contour_width(c) for c in contours[:12]])
+                cv.drawContours(colorim,line_contours, -1, (133,255,255), 3)
+                print([self.get_contour_width(c) for c in line_contours])
                 cv.imshow('', colorim)
                 cv.waitKey()
         else:
@@ -122,7 +127,6 @@ class Grader:
             cv.waitKey()
         if test == 'act':
             transformed_image = self.act_draw_boxes(transformed_image)
-            
         return transformed_image
 
 
@@ -144,19 +148,19 @@ class Grader:
         min_box_height = page_y_dif/(len(self.config['boxes'])+1)/2
         prev_contour = line_contours[0]
         boxes_to_draw = []
+        areas_to_erase = []
         for c in line_contours:
             # calculating height by finding difference between y values.
             current_box_height = cv.boundingRect(c)[1] - cv.boundingRect(prev_contour)[1]
             if current_box_height > min_box_height:
                 tx, ty, tw, _h = cv.boundingRect(prev_contour)
                 bx, by, bw, _h = cv.boundingRect(c)
-                boxes_to_draw.append(np.array(([tx,ty],[tx+tw,ty],[bx+bw,by], [bx,by]), dtype=np.int32))
+                boxes_to_draw.append(np.array(([tx,ty],[tx+tw,ty],[bx+bw,by-5], [bx,by-5]), dtype=np.int32))
+                areas_to_erase.append(np.array(([tx,ty-8],[tx+tw,ty-8],[tx+tw,ty+8], [tx,ty+8]), dtype=np.int32))
             prev_contour = c
         
-        # cv.drawContours(image, boxes_to_draw, -1, 0, 3)
-        
-        # cv.imshow('', image)
-        # cv.waitKey()
+        cv.drawContours(image, areas_to_erase, -1, 255, 20)   
+        cv.drawContours(image, boxes_to_draw[1:], -1, 0, 2)
         return image
 
 
@@ -164,7 +168,7 @@ class Grader:
         #sorts contours by y position
         line_contours = []
         min_line_length = self.get_contour_width(contours[5])*0.8
-        max_line_length = self.get_contour_width(contours[5])*1.2
+        max_line_length = self.get_contour_width(contours[5])*1.5
         # We are looping through the contours that are sorted by y position. 
         # keeps only those that are about right length
         for c in sorted(contours, key=lambda y: cv.boundingRect(y)[1], reverse=False): #the contours sorted by y postion on page
@@ -263,7 +267,7 @@ class Grader:
         self.scale_config_r(config, x_scale, y_scale, re_x, re_y)
     
     def format_error(self, data):
-        print(f"{data['errors']}, {data['status']}") 
+        print(f"{data['error']}, {data['status']}") 
         return json.dumps(data)
 
     def initialize_config(self, test, page_number, box_number):
@@ -369,8 +373,9 @@ class Grader:
             return self.format_error(data)
 
         # Grade each test box and add result to data.
-        for box_config in config['boxes']:  
-            # we never actually use multiple boxes, we just call once for each box
+        data['boxes'] = []
+        for box_num, box_config in enumerate(config['boxes']):  
+            #For debugging purposes: if box_num != 2: continue
             box_config['x_error'] = config['x_error']
             box_config['y_error'] = config['y_error']
             box_config['bubble_width'] = config['bubble_width']
@@ -378,10 +383,8 @@ class Grader:
             box_config['min_bubbles_per_box'] = config['min_bubbles_per_box']
             box_config['box_to_grade'] = config['box_to_grade']
 
-            box = TestBox(page, box_config, verbose_mode, debug_mode, scale)
-            data[box.name] = box.grade(page_number)
-            data['status'] =  data[box.name]['status']
-            data['error'] =  data[box.name]['error']
+            box = TestBox(page, box_config, verbose_mode, debug_mode, scale) #make cleaner with new lines
+            data['boxes'].append({'name': box.name, 'results': box.grade(page_number, box_num), 'status': box.status, 'error': box.error})
 
         return json.dumps(data)
 
