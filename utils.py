@@ -20,7 +20,7 @@ def get_threshold(im):
 
     """
     w, h = im.shape
-    neighborhood = int(w*h/30000)
+    neighborhood = int(w*h/15000)
     if neighborhood % 2 == 0:
         neighborhood = neighborhood - 1
     blurred = cv.GaussianBlur(im, (1, 1), 0)
