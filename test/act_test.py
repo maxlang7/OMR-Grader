@@ -44,9 +44,9 @@ class ExampleActTests(unittest.TestCase):
                               'H B H D J').split(' ')
                           ]
                         
-        for graded_results in data['boxes']:
-            self.assertEqual(len(graded_results['results']['bubbled']),len(expected_answers[2]))        
-            self.assertEqual(list(graded_results['results']['bubbled'].values()), expected_answers[2])
+        for i, graded_results in enumerate(data['boxes']):
+            self.assertEqual(len(graded_results['results']['bubbled']),len(expected_answers[i]))        
+            self.assertEqual(list(graded_results['results']['bubbled'].values()), expected_answers[i])
     def test_act_page1a(self):
         grader = g.Grader()
         jsonData = grader.grade('test/images/act_test1a.jpg', self.debug_mode, self.verbose_mode, 1.0, 'act', 1)
@@ -81,9 +81,9 @@ class ExampleActTests(unittest.TestCase):
                               'H B H D J').split(' ')
                           ]
                         
-        for graded_results in data['boxes']:
-            self.assertEqual(len(graded_results['results']['bubbled']),len(expected_answers[2]))        
-            self.assertEqual(list(graded_results['results']['bubbled'].values()), expected_answers[2])
+        for i, graded_results in enumerate(data['boxes']):
+            self.assertEqual(len(graded_results['results']['bubbled']),len(expected_answers[i]))        
+            self.assertEqual(list(graded_results['results']['bubbled'].values()), expected_answers[i])
     def test_act_page1b(self):
         grader = g.Grader()
         jsonData = grader.grade('test/images/act_test1b.jpeg', self.debug_mode, self.verbose_mode, 1.0, 'act', 1)
@@ -117,9 +117,9 @@ class ExampleActTests(unittest.TestCase):
                               'H B H D J').split(' ')
                           ]
                         
-        for graded_results in data['boxes']:
-            self.assertEqual(len(graded_results['results']['bubbled']),len(expected_answers[2]))        
-            self.assertEqual(list(graded_results['results']['bubbled'].values()), expected_answers[2])
+        for i, graded_results in enumerate(data['boxes']):
+            self.assertEqual(len(graded_results['results']['bubbled']),len(expected_answers[i]))        
+            self.assertEqual(list(graded_results['results']['bubbled'].values()), expected_answers[i])
     
     def test_act_page1c(self):
         grader = g.Grader()
@@ -154,9 +154,9 @@ class ExampleActTests(unittest.TestCase):
                               'H B H D J').split(' ')
                           ]
                         
-        for graded_results in data['boxes']:
-            self.assertEqual(len(graded_results['results']['bubbled']),len(expected_answers[2]))        
-            self.assertEqual(list(graded_results['results']['bubbled'].values()), expected_answers[2])
+        for i, graded_results in enumerate(data['boxes']):
+            self.assertEqual(len(graded_results['results']['bubbled']),len(expected_answers[i]))        
+            self.assertEqual(list(graded_results['results']['bubbled'].values()), expected_answers[i])
 
 
             
