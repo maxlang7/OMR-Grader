@@ -64,7 +64,6 @@ class Grader:
         if debug_mode:
             cv.imshow('', threshold)
             cv.waitKey()    
-        # Find contour for entire page. 
         contours, _ = cv.findContours(threshold, cv.RETR_EXTERNAL, 
             cv.CHAIN_APPROX_SIMPLE)
         if test == 'sat':
@@ -125,7 +124,12 @@ class Grader:
             transformed_image = self.act_draw_boxes(transformed_image)
         return transformed_image
 
-
+    def get_line_contour_y(self, line_contour):
+        """
+        Gets the y position of a line contour by finding the median y of all the points.
+        """
+        return np.median([p[0][1] for p in line_contour])
+        
     def act_draw_boxes(self, image):
         """
         Converts top and bottom lines into boxes and draws them onto the page
@@ -138,24 +142,26 @@ class Grader:
         line_contours = self.get_line_contours(contours[:12])
 
             
-        tx, ty, tw, _h = cv.boundingRect(line_contours[0])
-        bx, by, bw, _h = cv.boundingRect(line_contours[-1])
+        ty = self.get_line_contour_y(line_contours[0])
+        by = self.get_line_contour_y(line_contours[-1])
         page_y_dif = by - ty 
         min_box_height = page_y_dif/(len(self.config['boxes'])+1)/2
         prev_contour = line_contours[0]
         boxes_to_draw = []
         areas_to_erase = []
+        x = 0
+        w = image.shape[0]
         for c in line_contours:
-            # calculating height by finding difference between y values.
+            # calculating height by finding difference beween y values.
             current_box_height = cv.boundingRect(c)[1] - cv.boundingRect(prev_contour)[1]
             if current_box_height > min_box_height:
-                tx, ty, tw, _h = cv.boundingRect(prev_contour)
-                bx, by, bw, _h = cv.boundingRect(c)
-                boxes_to_draw.append(np.array(([tx,ty],[tx+tw,ty],[bx+bw,by-5], [bx,by-5]), dtype=np.int32))
-                areas_to_erase.append(np.array(([tx,ty-8],[tx+tw,ty-8],[tx+tw,ty+8], [tx,ty+8]), dtype=np.int32))
+                ty = self.get_line_contour_y(prev_contour)
+                by = self.get_line_contour_y(c)
+                boxes_to_draw.append(np.array(([x,ty],[x+w,ty],[x+w,by-5], [x,by-5]), dtype=np.int32))
+                areas_to_erase.append(np.array(([x,ty-8],[x+w,ty-8],[x+w,ty+8], [x,ty+8]), dtype=np.int32))
             prev_contour = c
         
-        cv.drawContours(image, areas_to_erase, -1, 255, 20)   
+        cv.drawContours(image, areas_to_erase, -1, 255, 40)   
         cv.drawContours(image, boxes_to_draw[1:], -1, 0, 2)
         return image
 
