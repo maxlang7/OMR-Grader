@@ -60,9 +60,6 @@ class Grader:
         """
         # Convert image to grayscale then blur to better detect contours.
         imgray = cv.cvtColor(im, cv.COLOR_BGR2GRAY)
-        if debug_mode:
-            cv.imshow('', imgray)
-            cv.waitKey()
         threshold = utils.get_threshold(imgray)
         if debug_mode:
             cv.imshow('', threshold)
@@ -102,7 +99,6 @@ class Grader:
             .______________.
             b1             b2
             """
-            #TODO print page
             page = np.array(([t1x,t1y],[b1x,b1y], [b2x,b2y], [t2x,t2y]), dtype=np.int32)
 
 
@@ -359,9 +355,6 @@ class Grader:
             data['status'] = 2
             data['error'] = f'Page not found in {image_name}'
             return self.format_error(data) 
-        if debug_mode:
-            cv.imshow('', page) 
-            cv.waitKey()
 
          # Scale config values based on page size.
         self.scale_config(config, page.shape[1], page.shape[0])
