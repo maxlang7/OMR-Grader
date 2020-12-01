@@ -4,8 +4,9 @@ import cv2 as cv
 from imutils import contours as cutils
 import numpy as np
 from collections import OrderedDict
-
+import functools
 import utils
+import operator
 
 class Error(Exception):
     pass
@@ -633,7 +634,7 @@ class TestBox:
 
         Args:
             bubbled (str): A string representing the graded answer.
-
+            question_num (int): An zero-based integer representing the question number (used when type is twolineletter) 
         Returns:
             str: A formatted string representing the graded answer, or '-' for
                 an unmarked answer.
@@ -761,38 +762,17 @@ class TestBox:
             unsure = True
             self.handle_unsure_question(question_num, group_num, box)
 
-
         bubble_pcts=[]
         for (i, bubble) in enumerate(question):
             percent_marked = self.get_percent_marked(bubble, box)
             bubble_pcts.append(percent_marked)
-            sure = False
-            if percent_marked > 0.4:
-                bubbled += str(i)
-                sure = True
-            elif percent_marked > 0.2 and unsure == False:
-                unsure = True
-                self.handle_unsure_question(question_num, group_num, box)
-                #bubbled = '?'
-                #break
-            
-        if self.multiple_responses == False:
-            # find the darkest bubble in a question
-            bubbled = ''
-            if len(bubble_pcts) > 0:
-                darkest_index = np.argmax(bubble_pcts)
-                if bubble_pcts[darkest_index] > 0.66:
-                    bubbled = str(darkest_index)
-                    filled = True
-                with open('meow.txt', 'a') as file:
-                    file.write(f'{filled}, {round(bubble_pcts[darkest_index],3)}\n') 
 
         # Add image slice if program running in verbose mode and image slice not
         # already added.
         if self.verbose_mode and unsure == False:
             self.add_image_slice(question_num, group_num, box)
-        self.bubbled[question_num] = self.format_answer(bubbled, question_num)
-    
+        return bubble_pcts
+
     def create_super_question(self, num_q_per_super_question, bubbled):
         """
         For open answer questions, we combine for columns into one super question. 
@@ -877,6 +857,7 @@ class TestBox:
             box (numpy.ndarray): An ndarray representing the test box.
 
         """
+        bubble_pcts = {}
         for (i, group) in enumerate(bubbles):
             # Split a group of bubbles by question.
             qgroup = self.group_by_question(group, self.groups[i])
@@ -902,7 +883,31 @@ class TestBox:
                     clean_question = self.rescue_expected_bubbles(qgroup, clean_question, nonbubbles)
                 clean_question = self.shrink_bubbles(clean_question, box)
                 if len(clean_question) > 0:
-                    self.grade_question(clean_question, question_num, i, box)
+                    bubble_pcts[question_num] = self.grade_question(clean_question, question_num, i, box)
+        return bubble_pcts
+
+    def refine_answers(self, bubble_pcts, bubbled):
+        # Goes through all bubbles and decides whether they're closer to the 
+        # median filled or the median unfilled and updates bubbled accordingly
+        filled_bubble_pcts = ([max(question) for question in bubble_pcts.values()])
+        bottom_twenty_pct_index = int((len(bubble_pcts.keys())*self.bubbles_per_q)/5)
+        unfilled_bubble_pcts = sorted(functools.reduce(operator.iconcat, bubble_pcts.values(), []))[0:bottom_twenty_pct_index]   
+        filled_median = np.median(filled_bubble_pcts)
+        unfilled_median = np.median(unfilled_bubble_pcts)
+        filled_threshold = (filled_median + unfilled_median)/2
+        for qnum, v in bubble_pcts.items():
+            bubbled[qnum] = ''
+            for bubble_num, bubble_percent in enumerate(v):
+                if bubble_percent > filled_threshold:
+                    bubbled[qnum] += self.format_answer(str(bubble_num), qnum)
+        if self.multiple_responses == False:
+            for qnum, question in bubbled.items():    
+                if len(question) > 1:
+                    # ** Will break if order of percents does not match order that bubbles are in **
+                    # see if blank questions are supposed to be blank
+                    darkest_index = np.argmax(bubble_pcts[qnum])
+                    bubbled[qnum] = self.format_answer(str(darkest_index), qnum)
+        return bubbled
 
     def grade(self, page_number, box_num):
         """
@@ -929,7 +934,8 @@ class TestBox:
                 gradable_box = self.erase_lines(gradable_box)
 
             bubbles, nonbubbles = self.get_bubbles(gradable_box)
-            self.grade_bubbles(bubbles, nonbubbles, gradable_box)
+            bubble_pcts = self.grade_bubbles(bubbles, nonbubbles, gradable_box)
+            self.bubbled = self.refine_answers(bubble_pcts, self.bubbled)
             if len(self.bubbled) == self.num_questions:
                 self.status = 0
                 self.error = ''
