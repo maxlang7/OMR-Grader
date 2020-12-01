@@ -86,7 +86,7 @@ class Grader:
             and find the one with the largest y position (closest to the bottom) 
             that is at least 80% of the first 6 minimum line we calculated before
             """
-            line_contours = self.get_line_contours(contours[:11])
+            line_contours = self.get_line_contours(contours[:20])
             t1x, t1y, t2x, t2y = self.get_first_and_last_points(line_contours[0], 'x')
             b1x, b1y, b2x, b2y = self.get_first_and_last_points(line_contours[-1], 'x')
             """
@@ -139,7 +139,7 @@ class Grader:
         contours, _ = cv.findContours(threshold, cv.RETR_EXTERNAL, 
             cv.CHAIN_APPROX_SIMPLE)
         contours = self.sort_contours_by_width(contours)
-        line_contours = self.get_line_contours(contours[:12])
+        line_contours = sorted(self.get_line_contours(contours[:20]), key=lambda y: self.get_line_contour_y(y), reverse=False)
 
             
         ty = self.get_line_contour_y(line_contours[0])
@@ -153,7 +153,7 @@ class Grader:
         w = image.shape[0]
         for c in line_contours:
             # calculating height by finding difference beween y values.
-            current_box_height = cv.boundingRect(c)[1] - cv.boundingRect(prev_contour)[1]
+            current_box_height = self.get_line_contour_y(c) - self.get_line_contour_y(prev_contour)
             if current_box_height > min_box_height:
                 ty = self.get_line_contour_y(prev_contour)
                 by = self.get_line_contour_y(c)
@@ -173,8 +173,8 @@ class Grader:
         max_line_length = self.get_contour_width(contours[5])*1.5
         # We are looping through the contours that are sorted by y position. 
         # keeps only those that are about right length
-        for c in sorted(contours, key=lambda y: cv.boundingRect(y)[1], reverse=False): #the contours sorted by y postion on page
-            _, _, w, _ = cv.boundingRect(c)
+        for c in sorted(contours, key=lambda y: self.get_contour_width(y), reverse=False): #the contours sorted by y postion on page
+            w = self.get_contour_width(c)
             if w >= min_line_length and w <= max_line_length:
                 line_contours.append(c)
         return line_contours
