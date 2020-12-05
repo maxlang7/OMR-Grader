@@ -60,7 +60,7 @@ class Grader:
         """
         # Convert image to grayscale then blur to better detect contours.
         imgray = cv.cvtColor(im, cv.COLOR_BGR2GRAY)
-        threshold = utils.get_threshold(imgray)
+        threshold = utils.get_threshold(imgray, threshold_constant)
         if debug_mode:
             cv.imshow('', threshold)
             cv.waitKey()    
@@ -121,7 +121,7 @@ class Grader:
             cv.imshow('', transformed_image)
             cv.waitKey()
         if test == 'act':
-            transformed_image = self.act_draw_boxes(transformed_image)
+            transformed_image = self.act_draw_boxes(transformed_image, threshold_constant)
         return transformed_image
 
     def get_line_contour_y(self, line_contour):
@@ -130,12 +130,14 @@ class Grader:
         """
         return np.median([p[0][1] for p in line_contour])
         
-    def act_draw_boxes(self, image):
+    def act_draw_boxes(self, image, threshold_constant):
         """
         Converts top and bottom lines into boxes and draws them onto the page
 
         """
-        threshold = utils.get_threshold(image)
+        threshold = utils.get_threshold(image, threshold_constant)
+        # cv.imshow('', threshold)
+        # cv.waitKey()
         contours, _ = cv.findContours(threshold, cv.RETR_EXTERNAL, 
             cv.CHAIN_APPROX_SIMPLE)
         contours = self.sort_contours_by_width(contours)
@@ -356,8 +358,12 @@ class Grader:
             config = self.config
 
         # Find largest box within image.
-        page = self.find_page(im, test, debug_mode)
-        if page is None:
+        threshold_constant = 0
+        for threshold_constant in [25, 1, 50, 75]:
+            page = self.find_page(im, test, debug_mode, threshold_constant)
+            if page is not None:
+                break
+        if page is None:    
             data['status'] = 2
             data['error'] = f'Page not found in {image_name}'
             return self.format_error(data) 
@@ -382,7 +388,7 @@ class Grader:
             box_config['min_bubbles_per_box'] = config['min_bubbles_per_box']
             box_config['box_to_grade'] = config['box_to_grade']
 
-            box = TestBox(page, box_config, verbose_mode, debug_mode, scale) #make cleaner with new lines
+            box = TestBox(page, box_config, verbose_mode, debug_mode, scale, test, threshold_constant) #make cleaner with new lines
             data['boxes'].append({'name': box.name, 'results': box.grade(page_number, box_num), 'status': box.status, 'error': box.error})
 
         return json.dumps(data)

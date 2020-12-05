@@ -6,7 +6,7 @@ from imutils.perspective import four_point_transform
 import numpy as np
 
 
-def get_threshold(im):
+def get_threshold(im, constant):
     """
     Performs a Gaussian blur and threshold on an image for image processing.
     Returns the blurred and thresholded image.
@@ -26,7 +26,7 @@ def get_threshold(im):
     blurred = cv.GaussianBlur(im, (1, 1), 0)
     blurred = cv.bilateralFilter(blurred,5,50,50)
     threshold = cv.adaptiveThreshold(blurred,255,cv.ADAPTIVE_THRESH_GAUSSIAN_C,\
-            cv.THRESH_BINARY_INV, neighborhood, 1)
+            cv.THRESH_BINARY_INV, neighborhood, constant)
     return threshold
 
 def get_euclidian_distance(point1, point2):

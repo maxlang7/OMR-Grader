@@ -17,7 +17,7 @@ class BoxNotFoundError(Error):
 
 class TestBox:
 
-    def __init__(self, page, config, verbose_mode, debug_mode, scale):
+    def __init__(self, page, config, verbose_mode, debug_mode, scale, test, threshold_constant):
         """
         Constructor for a new test box.
 
@@ -41,7 +41,8 @@ class TestBox:
         self.verbose_mode = verbose_mode
         self.debug_mode = debug_mode
         self.scale = scale
-
+        self.test = test
+        self.threshold_constant = threshold_constant
         # Configuration values.
         self.name = config['name']
         self.type = config['type']
@@ -368,7 +369,7 @@ class TestBox:
 
         """
         # Blur and threshold the page, then find boxes within the page.
-        thresh_page = utils.get_threshold(self.page)
+        thresh_page = utils.get_threshold(self.page, self.threshold_constant)
         contours, _ = cv.findContours(thresh_page, cv.RETR_TREE, 
             cv.CHAIN_APPROX_SIMPLE)
         potential_boxes = []
