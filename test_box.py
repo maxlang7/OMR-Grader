@@ -887,20 +887,36 @@ class TestBox:
                     bubble_pcts[question_num] = self.grade_question(clean_question, question_num, i, box)
         return bubble_pcts
 
+    def get_filled_bubble_pcts(self, bubble_pcts):
+        """
+        gets a list of all the filled bubble percentages
+        """
+        filled_bubble_pcts = []
+        for question in bubble_pcts.values():
+            if max(question) > 0.1:
+                filled_bubble_pcts.append(max(question))
+        return filled_bubble_pcts
+
     def refine_answers(self, bubble_pcts, bubbled):
         # Goes through all bubbles and decides whether they're closer to the 
         # median filled or the median unfilled and updates bubbled accordingly
-        filled_bubble_pcts = ([max(question) for question in bubble_pcts.values()])
+        filled_bubble_pcts = self.get_filled_bubble_pcts(bubble_pcts)
         bottom_twenty_pct_index = int((len(bubble_pcts.keys())*self.bubbles_per_q)/5)
         unfilled_bubble_pcts = sorted(functools.reduce(operator.iconcat, bubble_pcts.values(), []))[0:bottom_twenty_pct_index]   
         filled_median = np.median(filled_bubble_pcts)
         unfilled_median = np.median(unfilled_bubble_pcts)
-        filled_threshold = (filled_median + unfilled_median)/2
+        if self.test == 'act':
+            multiplier = 0.6
+        elif self.test == 'sat':
+            multiplier = 0.3
+        filled_threshold = (filled_median + unfilled_median)*multiplier
         for qnum, v in bubble_pcts.items():
             bubbled[qnum] = ''
             for bubble_num, bubble_percent in enumerate(v):
                 if bubble_percent > filled_threshold:
                     bubbled[qnum] += self.format_answer(str(bubble_num), qnum)
+            if bubbled[qnum] == '':
+                bubbled[qnum] = self.format_answer('', qnum)
         if self.multiple_responses == False:
             for qnum, question in bubbled.items():    
                 if len(question) > 1:
