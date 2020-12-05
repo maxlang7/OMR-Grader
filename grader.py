@@ -24,7 +24,7 @@ class Grader:
         return sorted(contours, key=lambda x: self.get_contour_width(x), reverse=True)
     
     def get_first_and_last_points(self, contour, xy):
-        #Gets the first and last points of th econtour it is passed (element decides whether it sorts by x or y)
+        #Gets the first and last points of the contour it is passed (element decides whether it sorts by x or y)
         min_x = [3000000000, 0]
         max_x = [-1, 0]
         min_y = [0, 3000000000]
@@ -46,7 +46,7 @@ class Grader:
         if xy == 'y':
             return min_y[0], min_y[1], max_y[0], max_y[1]
 
-    def find_page(self, im, test, debug_mode):
+    def find_page(self, im, test, debug_mode, threshold_constant):
         """
         Finds and returns the outside box that contains the entire test. Will use this to scale the given image.
 
@@ -59,6 +59,7 @@ class Grader:
 
         """
         # Convert image to grayscale then blur to better detect contours.
+        page = None
         imgray = cv.cvtColor(im, cv.COLOR_BGR2GRAY)
         threshold = utils.get_threshold(imgray, threshold_constant)
         if debug_mode:
@@ -68,7 +69,7 @@ class Grader:
             cv.CHAIN_APPROX_SIMPLE)
         if test == 'sat':
             contours = sorted(contours, key=cv.contourArea, reverse=True)
-            if len(contours) > 0:
+            if len(contours) > 0 and cv.contourArea(contours[0]) > 0.5*imgray.size:
             # Approximate the contour.
                 for contour in contours:
                     peri = cv.arcLength(contour, True)
@@ -87,8 +88,8 @@ class Grader:
             that is at least 80% of the first 6 minimum line we calculated before
             """
             line_contours = self.get_line_contours(contours[:20])
-            t1x, t1y, t2x, t2y = self.get_first_and_last_points(line_contours[0], 'x')
-            b1x, b1y, b2x, b2y = self.get_first_and_last_points(line_contours[-1], 'x')
+            b1x, b1y, b2x, b2y = self.get_first_and_last_points(line_contours[0], 'x')
+            t1x, t1y, t2x, t2y = self.get_first_and_last_points(line_contours[-1], 'x')
             """
             EX:
             t1            t2
@@ -107,6 +108,8 @@ class Grader:
                 print([self.get_contour_width(c) for c in line_contours])
                 cv.imshow('', colorim)
                 cv.waitKey()
+            cv.drawContours(imgray,line_contours, -1, 0, 3)
+
         else:
             #TODO when we add more tests, extend these errors and if block
             raise f'We currently only support sat and act (lowercase) not {test}'
@@ -380,7 +383,7 @@ class Grader:
         # Grade each test box and add result to data.
         data['boxes'] = []
         for box_num, box_config in enumerate(config['boxes']):  
-            #For debugging purposes: if box_num != 2: continue
+            #For debugging purposes: if box_num != 3: continue
             box_config['x_error'] = config['x_error']
             box_config['y_error'] = config['y_error']
             box_config['bubble_width'] = config['bubble_width']
