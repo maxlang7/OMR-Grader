@@ -705,7 +705,7 @@ class TestBox:
                     x, y, w, h = cv.boundingRect(contour)
                     bubble_values.append([x, y, w, h])
                 bubble_values.sort()
-                if column < len(row):
+                if self.bubbles_per_q == len(row):
                     x_values.append(bubble_values[column][0])
 
             expected_xs.append(np.median(x_values))
