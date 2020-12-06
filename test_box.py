@@ -384,7 +384,6 @@ class TestBox:
         boundingBoxes = [cv.boundingRect(box) for box in potential_boxes]
         (potential_boxes, boundingBoxes) = zip(*sorted(zip(potential_boxes, boundingBoxes), key=lambda b:b[1][1]))
 
-        # If is_box doesn't find a box of the right size, accept the page as the box. 
         if len(potential_boxes) == 0:
             raise BoxNotFoundError('No box found on the page')
         elif len(potential_boxes) < self.box_to_grade:
@@ -395,7 +394,7 @@ class TestBox:
                 cv.drawContours(colorbox, potential_boxes[box_num], -1, (255,0,255), 3)
                 cv.imshow('', colorbox)
                 cv.waitKey()                        
-            return utils.get_transform(potential_boxes[box_num], thresh_page)
+            return utils.get_transform(potential_boxes[box_num], thresh_page), cv.bitwise_not(utils.get_transform(potential_boxes[box_num], self.page))
         
     def init_questions(self):
         """
@@ -605,7 +604,7 @@ class TestBox:
         self.add_image_slice(question_num, group_num, box)
         self.unsure.append(question_num)
 
-    def get_percent_marked(self, bubble, box):
+    def get_bubble_intensity(self, bubble, box):
         """
         Calculates the percentage of darkened pixels in the bubble contour.
 
@@ -617,17 +616,16 @@ class TestBox:
             float: The percentage of darkened pixels in the bubble contour.
 
         """
-        # Applies a mask to the entire test box image to only look at one
-        # bubble, then counts the number of nonzero pixels in the bubble.
-       
-        mask = np.zeros(box.shape, dtype='uint8')
-        cv.drawContours(mask, [bubble], -1, 255, -1)
-        mask = cv.bitwise_and(box, box, mask=mask)
-
-        total = cv.countNonZero(mask)
-        area = cv.contourArea(bubble)
-
-        return total / area
+        # Sum up all of the pixel values (0 to 255) inside a bubble 
+        zero_box = np.zeros_like(box)
+        cv.drawContours(zero_box, [bubble], -1, 255, thickness=-1)
+        #Could be useful to visualize this function|
+        #                                          V
+                                                #if self.debug_mode:
+                                                    #cv.imshow('', zero_box)
+                                                    #cv.waitKey()
+        pts = np.where(zero_box == 255)
+        return box[pts[0], pts[1]]
 
     def format_answer(self, bubbled, question_num):
         """
@@ -763,16 +761,16 @@ class TestBox:
             unsure = True
             self.handle_unsure_question(question_num, group_num, box)
 
-        bubble_pcts=[]
-        for (i, bubble) in enumerate(question):
-            percent_marked = self.get_percent_marked(bubble, box)
-            bubble_pcts.append(percent_marked)
+        bubble_vals=[]
+        for bubble in question:
+            bubble_intensity = sum(self.get_bubble_intensity(bubble, box))
+            bubble_vals.append(bubble_intensity)
 
         # Add image slice if program running in verbose mode and image slice not
         # already added.
         if self.verbose_mode and unsure == False:
             self.add_image_slice(question_num, group_num, box)
-        return bubble_pcts
+        return bubble_vals
 
     def create_super_question(self, num_q_per_super_question, bubbled):
         """
@@ -840,14 +838,14 @@ class TestBox:
         if self.debug_mode:
             #show the detected bubbles in green.
             colorbox = cv.cvtColor(box, cv.COLOR_GRAY2BGR)
-            cv.drawContours(colorbox, shrunken_bubbles, -1, (0,255,0), 2)
+            cv.drawContours(colorbox, shrunken_bubbles, -1, (0,255,0), -1)
             cv.imshow('', colorbox)
             cv.waitKey()
             
         return shrunken_bubbles
 
 
-    def grade_bubbles(self, bubbles, nonbubbles, box):
+    def grade_bubbles(self, bubbles, nonbubbles, box, graybox):
         """
         Grades a list of bubbles from the test box.
 
@@ -858,7 +856,7 @@ class TestBox:
             box (numpy.ndarray): An ndarray representing the test box.
 
         """
-        bubble_pcts = {}
+        bubble_vals = {}
         for (i, group) in enumerate(bubbles):
             # Split a group of bubbles by question.
             qgroup = self.group_by_question(group, self.groups[i])
@@ -884,36 +882,39 @@ class TestBox:
                     clean_question = self.rescue_expected_bubbles(qgroup, clean_question, nonbubbles)
                 clean_question = self.shrink_bubbles(clean_question, box)
                 if len(clean_question) > 0:
-                    bubble_pcts[question_num] = self.grade_question(clean_question, question_num, i, box)
-        return bubble_pcts
+                    bubble_vals[question_num] = self.grade_question(clean_question, question_num, i, graybox)
+        return bubble_vals
 
-    def get_filled_bubble_pcts(self, bubble_pcts):
+    def get_filled_bubble_vals(self, bubble_vals):
         """
         gets a list of all the filled bubble percentages
         """
-        filled_bubble_pcts = []
-        for question in bubble_pcts.values():
+        filled_bubble_vals = []
+        for question in bubble_vals.values():
             if max(question) > 0.1:
-                filled_bubble_pcts.append(max(question))
-        return filled_bubble_pcts
+                filled_bubble_vals.append(max(question))
+        return filled_bubble_vals
 
-    def refine_answers(self, bubble_pcts, bubbled):
+    def refine_answers(self, bubble_vals, bubbled):
         # Goes through all bubbles and decides whether they're closer to the 
         # median filled or the median unfilled and updates bubbled accordingly
-        filled_bubble_pcts = self.get_filled_bubble_pcts(bubble_pcts)
-        bottom_twenty_pct_index = int((len(bubble_pcts.keys())*self.bubbles_per_q)/5)
-        unfilled_bubble_pcts = sorted(functools.reduce(operator.iconcat, bubble_pcts.values(), []))[0:bottom_twenty_pct_index]   
-        filled_median = np.median(filled_bubble_pcts)
-        unfilled_median = np.median(unfilled_bubble_pcts)
+        filled_bubble_vals = self.get_filled_bubble_vals(bubble_vals)
+        bottom_twenty_val_index = int((len(bubble_vals.keys())*self.bubbles_per_q)/5)
+        unfilled_bubble_vals = sorted(functools.reduce(operator.iconcat, bubble_vals.values(), []))[0:bottom_twenty_val_index]   
+        filled_median = np.median(filled_bubble_vals)
+        unfilled_median = np.median(unfilled_bubble_vals)
+        median_range = np.median([max(intensities)-min(intensities) for intensities in bubble_vals.values()])
+        range_threshold = median_range*0.5
         if self.test == 'act':
-            multiplier = 0.6
+            multiplier = 0.55 #ACT has printed letter inside bubbles, so we want to require a higher threshold for bubbled
         elif self.test == 'sat':
-            multiplier = 0.3
+            multiplier = 0.40
         filled_threshold = (filled_median + unfilled_median)*multiplier
-        for qnum, v in bubble_pcts.items():
+        for qnum, v in bubble_vals.items():
             bubbled[qnum] = ''
+            qrange = max(v)-min(v)
             for bubble_num, bubble_percent in enumerate(v):
-                if bubble_percent > filled_threshold:
+                if bubble_percent > filled_threshold and qrange > range_threshold:
                     bubbled[qnum] += self.format_answer(str(bubble_num), qnum)
             if bubbled[qnum] == '':
                 bubbled[qnum] = self.format_answer('', qnum)
@@ -922,7 +923,7 @@ class TestBox:
                 if len(question) > 1:
                     # ** Will break if order of percents does not match order that bubbles are in **
                     # see if blank questions are supposed to be blank
-                    darkest_index = np.argmax(bubble_pcts[qnum])
+                    darkest_index = np.argmax(bubble_vals[qnum])
                     bubbled[qnum] = self.format_answer(str(darkest_index), qnum)
         return bubbled
 
@@ -940,7 +941,12 @@ class TestBox:
             'error': ''
         }
         # Find box, find bubbles in box, then grade bubbles.
-        gradable_box = self.get_box(box_num)
+        gradable_box, gradable_im = self.get_box(box_num)
+        if self.debug_mode:
+            cv.imshow('', gradable_box)
+            cv.waitKey()
+            cv.imshow('', gradable_im)
+            cv.waitKey()
         if gradable_box is None:
             data['status'] = 2
             data['error'] = f'We were unable to find any boxes on page {page_number}'
@@ -951,8 +957,8 @@ class TestBox:
                 gradable_box = self.erase_lines(gradable_box)
 
             bubbles, nonbubbles = self.get_bubbles(gradable_box)
-            bubble_pcts = self.grade_bubbles(bubbles, nonbubbles, gradable_box)
-            self.bubbled = self.refine_answers(bubble_pcts, self.bubbled)
+            bubble_vals = self.grade_bubbles(bubbles, nonbubbles, gradable_box, gradable_im)
+            self.bubbled = self.refine_answers(bubble_vals, self.bubbled)
             if len(self.bubbled) == self.num_questions:
                 self.status = 0
                 self.error = ''
