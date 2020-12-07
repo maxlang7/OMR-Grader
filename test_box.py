@@ -370,6 +370,7 @@ class TestBox:
         """
         # Blur and threshold the page, then find boxes within the page.
         thresh_page = utils.get_threshold(self.page, self.threshold_constant)
+        thresh_page_light = cv.bitwise_not(self.page)
         contours, _ = cv.findContours(thresh_page, cv.RETR_TREE, 
             cv.CHAIN_APPROX_SIMPLE)
         potential_boxes = []
@@ -394,7 +395,8 @@ class TestBox:
                 cv.drawContours(colorbox, potential_boxes[box_num], -1, (255,0,255), 3)
                 cv.imshow('', colorbox)
                 cv.waitKey()                        
-            return utils.get_transform(potential_boxes[box_num], thresh_page), cv.bitwise_not(utils.get_transform(potential_boxes[box_num], self.page))
+            return utils.get_transform(potential_boxes[box_num], thresh_page), \
+                   utils.get_transform(potential_boxes[box_num], thresh_page_light)
         
     def init_questions(self):
         """
