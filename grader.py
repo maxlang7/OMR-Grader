@@ -182,7 +182,7 @@ class Grader:
             w = self.get_contour_width(c)
             if w >= min_line_length and w <= max_line_length:
                 line_contours.append(c)
-        return line_contours
+        return sorted(line_contours, key=lambda a: self.get_line_contour_y(a), reverse = False)
 
 
 
@@ -383,7 +383,7 @@ class Grader:
         # Grade each test box and add result to data.
         data['boxes'] = []
         for box_num, box_config in enumerate(config['boxes']):  
-            #For debugging purposes: if box_num != 3: continue
+            #For debugging purposes: if box_num != 0: continue
             box_config['x_error'] = config['x_error']
             box_config['y_error'] = config['y_error']
             box_config['bubble_width'] = config['bubble_width']
