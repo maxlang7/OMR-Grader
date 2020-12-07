@@ -887,46 +887,91 @@ class TestBox:
                     bubble_vals[question_num] = self.grade_question(clean_question, question_num, i, graybox)
         return bubble_vals
 
-    def get_filled_bubble_vals(self, bubble_vals):
+    def get_filled_bubble_vals(self, bubble_vals, unfilled_median):
         """
-        gets a list of all the filled bubble percentages
+        gets a list of all the certainly filled bubble values
         """
         filled_bubble_vals = []
-        for question in bubble_vals.values():
-            if max(question) > 0.1:
-                filled_bubble_vals.append(max(question))
+        expected_filled = len(bubble_vals.keys())
+        corrected_bubbles = [b - unfilled_median for b in bubble_vals.values()]
+        corrected_top_bubbles = sorted(functools.reduce(operator.iconcat, corrected_bubbles, []))[-1*expected_filled:]
+        
+        i=0
+        #keep dropping the lowest bubble until bottom-top < 50%
+        while (corrected_top_bubbles[-1] - corrected_top_bubbles[i])/corrected_top_bubbles[-1] > 0.5:
+            i+=1
+        if i < expected_filled - 5: 
+            filled_bubble_vals = corrected_top_bubbles[i:]
+        else: #not enough filled, need to use distance from the unfilled instead
+            for question in corrected_bubbles:
+                if max(question) > np.median(question)*5:
+                    filled_bubble_vals.append(max(question))
         return filled_bubble_vals
+
+    def get_qvar(self, question_vals):
+        """
+        Try to identify a value for a question that distinguishes whether or not one value stands out
+        """
+        question_vals = sorted(question_vals)
+        total = 0
+        top_dif = question_vals[-1] - question_vals[-2]
+        prev_val = question_vals[0]
+        for val in question_vals[1:-1]:
+            total += val-prev_val
+            prev_val = val
+        return top_dif/(total/(len(question_vals)-2))
+             
 
     def refine_answers(self, bubble_vals, bubbled):
         # Goes through all bubbles and decides whether they're closer to the 
         # median filled or the median unfilled and updates bubbled accordingly
-        filled_bubble_vals = self.get_filled_bubble_vals(bubble_vals)
-        bottom_twenty_val_index = int((len(bubble_vals.keys())*self.bubbles_per_q)/5)
-        unfilled_bubble_vals = sorted(functools.reduce(operator.iconcat, bubble_vals.values(), []))[0:bottom_twenty_val_index]   
-        filled_median = np.median(filled_bubble_vals)
+        num_questions = len(bubble_vals.keys())
+        bottom_val_index = int((num_questions*self.bubbles_per_q)*0.3)
+        unfilled_bubble_vals = sorted(functools.reduce(operator.iconcat, bubble_vals.values(), []))[0:bottom_val_index]   
         unfilled_median = np.median(unfilled_bubble_vals)
-        median_range = np.median([max(intensities)-min(intensities) for intensities in bubble_vals.values()])
-        range_threshold = median_range*0.5
+        filled_bubble_vals = self.get_filled_bubble_vals(bubble_vals, unfilled_median)
+        filled_median = np.median(filled_bubble_vals)
+        qvars = [self.get_qvar(v - unfilled_median) for v in bubble_vals.values()]
+        if len(filled_bubble_vals) > 0.4 * num_questions:
+            variance_threshold = np.median(qvars) * 0.2
+        else: # not enough filled questions, offset from lowest 
+            variance_threshold = np.median(sorted(qvars)[0:int(num_questions/2)])* 10
         if self.test == 'act':
             multiplier = 0.55 #ACT has printed letter inside bubbles, so we want to require a higher threshold for bubbled
         elif self.test == 'sat':
-            multiplier = 0.40
-        filled_threshold = (filled_median + unfilled_median)*multiplier
+            multiplier = 0.5
+        filled_threshold = filled_median * multiplier
         for qnum, v in bubble_vals.items():
+            corrected_vals = [val - unfilled_median for val in v]
             bubbled[qnum] = ''
-            qrange = max(v)-min(v)
-            for bubble_num, bubble_percent in enumerate(v):
-                if bubble_percent > filled_threshold and qrange > range_threshold:
+            qvar = self.get_qvar(corrected_vals)
+            darkest_bubble_val = 0
+            darkest_index = None
+            
+            for bubble_num, val in enumerate(corrected_vals):
+                if val > filled_threshold and qvar > variance_threshold:
                     bubbled[qnum] += self.format_answer(str(bubble_num), qnum)
+                if val > darkest_bubble_val:
+                    darkest_bubble_val = val
+                    darkest_index = bubble_num
+
+            #can we rescue bubbles based on a combination of values?        
+            if bubbled[qnum] == '' and \
+               (( min((qvar / variance_threshold), 1.2)) + \
+               (darkest_bubble_val / (filled_threshold*.95)) > 1.65):
+                    
+                bubbled[qnum] = self.format_answer(str(darkest_index), qnum)
             if bubbled[qnum] == '':
                 bubbled[qnum] = self.format_answer('', qnum)
+            
         if self.multiple_responses == False:
-            for qnum, question in bubbled.items():    
+            for qnum, question in bubbled.items(): 
+                 
                 if len(question) > 1:
                     # ** Will break if order of percents does not match order that bubbles are in **
                     # see if blank questions are supposed to be blank
-                    darkest_index = np.argmax(bubble_vals[qnum])
-                    bubbled[qnum] = self.format_answer(str(darkest_index), qnum)
+                     darkest_index = np.argmax(bubble_vals[qnum])
+                     bubbled[qnum] = self.format_answer(str(darkest_index), qnum)
         return bubbled
 
     def grade(self, page_number, box_num):
