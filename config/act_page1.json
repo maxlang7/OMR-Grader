@@ -1,0 +1,216 @@
+{
+    "page_width": 1240.0,
+    "page_height": 1590.0,
+    "bubble_width": 25.0,
+    "bubble_height": 20.0,
+    "x_error": 10.8,
+    "y_error": 10.8,
+    "min_bubbles_per_box": 20,
+    "box_to_grade": 1,
+    "boxes": [
+        {
+            "name": "test1",
+            "type": "twolineletter",
+            "orientation": "left-to-right",
+            "multiple_responses": false,
+            "num_q_per_super_question": 1,
+            "starting_question_num": 1,
+            "x": 0.0,
+            "y": 0.0,
+            "rows": 13,
+            "columns": 4,
+            "num_questions": 75,
+            "groups": [
+                {
+                    "x_min": 95.0,
+                    "x_max": 190.0,
+                    "y_min": 57.0,
+                    "y_max": 355.0
+                },
+                {
+                    "x_min": 295.0,
+                    "x_max": 395.0,
+                    "y_min": 57.0,
+                    "y_max": 355.0
+                },
+                {
+                    "x_min": 490.0,
+                    "x_max": 595.0,
+                    "y_min": 57.0,
+                    "y_max": 355.0
+                },
+                {
+                    "x_min": 685.0,
+                    "x_max": 795.0,
+                    "y_min": 57.0,
+                    "y_max": 355.0
+                },
+                {
+                    "x_min": 880.0,
+                    "x_max": 990.0,
+                    "y_min": 57.0,
+                    "y_max": 355.0
+                },
+                {
+                    "x_min": 1075.0,
+                    "x_max": 1180.0,
+                    "y_min": 57.0,
+                    "y_max": 355.0
+                }
+            ]
+        },
+        {
+            "name": "test2",
+            "type": "twolineletter",
+            "orientation": "left-to-right",
+            "multiple_responses": false,
+            "num_q_per_super_question": 1, 
+            "starting_question_num": 1,
+            "x": 0.0,
+            "y": 0.0,
+            "rows": 10,
+            "columns": 5, 
+            "num_questions": 60,
+            "groups": [
+                {
+                    "x_min": 95.0,
+                    "x_max": 220.0,
+                    "y_min": 50.0,
+                    "y_max": 270.0
+                },
+                {
+                    "x_min": 290.0, 
+                    "x_max": 420.0,
+                    "y_min": 50.0,
+                    "y_max": 270.0       
+                },
+                {
+                    "x_min": 490.0,
+                    "x_max": 640.0,
+                    "y_min": 50.0,
+                    "y_max": 273.0                    
+                },
+                {
+                    "x_min": 680.0,
+                    "x_max": 810.0,
+                    "y_min": 50.0,
+                    "y_max": 273.0                    
+                },
+                {
+                    "x_min": 880.0,
+                    "x_max": 1000.0,
+                    "y_min": 50.0,
+                    "y_max": 273.0                    
+                },
+                {
+                    "x_min": 1075.0,
+                    "x_max": 1240.0,
+                    "y_min": 50.0,
+                    "y_max": 273.0 
+                }
+            ]
+        },        
+        {
+            "name": "test3",
+            "type": "twolineletter",
+            "orientation": "left-to-right",
+            "multiple_responses": false,
+            "num_q_per_super_question": 1, 
+            "starting_question_num": 1,
+            "x": 0.0,
+            "y": 0.0,
+            "rows": 7,
+            "columns": 4, 
+            "num_questions": 40,
+            "groups": [
+                {
+                    "x_min": 95.0,
+                    "x_max": 190.0,
+                    "y_min": 50.0,
+                    "y_max": 205.0
+                },
+                {
+                    "x_min": 290.0, 
+                    "x_max": 390.0,
+                    "y_min": 50.0,
+                    "y_max": 205.0       
+                },
+                {
+                    "x_min": 490.0,
+                    "x_max": 610.0,
+                    "y_min": 50.0,
+                    "y_max": 205.0                    
+                },
+                {
+                    "x_min": 680.0,
+                    "x_max": 780.0,
+                    "y_min": 50.0,
+                    "y_max": 205.0                    
+                },
+                {
+                    "x_min": 880.0,
+                    "x_max": 970.0,
+                    "y_min": 50.0,
+                    "y_max": 205.0                    
+                },
+                {
+                    "x_min": 1075.0,
+                    "x_max": 1210.0,
+                    "y_min": 50.0,
+                    "y_max": 205.0 
+                }
+            ]
+        },        
+        {
+            "name": "test4",
+            "type": "twolineletter",
+            "orientation": "left-to-right",
+            "multiple_responses": false,
+            "num_q_per_super_question": 1, 
+            "starting_question_num": 1,
+            "x": 0.0,
+            "y": 0.0,
+            "rows": 7,
+            "columns": 4, 
+            "num_questions": 40,
+            "groups": [
+                {
+                    "x_min": 95.0,
+                    "x_max": 190.0,
+                    "y_min": 50.0,
+                    "y_max": 205.0
+                },
+                {
+                    "x_min": 290.0, 
+                    "x_max": 390.0,
+                    "y_min": 50.0,
+                    "y_max": 205.0       
+                },
+                {
+                    "x_min": 490.0,
+                    "x_max": 610.0,
+                    "y_min": 50.0,
+                    "y_max": 205.0                    
+                },
+                {
+                    "x_min": 680.0,
+                    "x_max": 780.0,
+                    "y_min": 50.0,
+                    "y_max": 205.0                    
+                },
+                {
+                    "x_min": 880.0,
+                    "x_max": 970.0,
+                    "y_min": 50.0,
+                    "y_max": 205.0                    
+                },
+                {
+                    "x_min": 1075.0,
+                    "x_max": 1210.0,
+                    "y_min": 50.0,
+                    "y_max": 205.0 
+                }
+            ]
+        }
+    ]
+}

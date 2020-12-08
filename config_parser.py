@@ -9,7 +9,7 @@ class Parser:
 
     group_keys = ['x_min', 'x_max', 'y_min', 'y_max']
 
-    box_types = ['letter', 'number']
+    box_types = ['letter', 'number', 'twolineletter']
 
     box_orientations = ['left-to-right', 'top-to-bottom']
 

@@ -33,10 +33,10 @@ SMTP_USERNAME=os.getenv('SMTP_USERNAME')
 SMTP_PASSWORD=os.getenv('SMTP_PASSWORD')
 SMTP_PORT=os.getenv('SMTP_PORT')
 
-#TODO JASON TALK: confirm foreign key relationships in database, permissions to delete etc.
 #TODO .Heic
 #TODO If uploaded wrong page to wrong upload, then we can try it agianst other configs to see if they match.
-#TODO IMPORTANT: Make better error message for bad image that we can't find a box on. (see mom maybe)
+#TODO Try multipe config scalings in case the box detection is bad
+
 #uploads parsed test data to database
 def upload_to_database(examinfo, page_answers):
     conn = pyodbc.connect('Driver={ODBC Driver 17 for SQL Server};'
@@ -161,7 +161,6 @@ def examinfohash(examinfo):
 
 @flaskapp.route('/v1/grader', methods=['POST'])
 def handle_grader_message():
-    #TODO: determine and parse POSTed message
     imageurls = []
     print(flask.request.form)
 
