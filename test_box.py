@@ -755,9 +755,7 @@ class TestBox:
             box (numpy.ndarray): An ndarray representing the test box image.
 
         """
-        bubbled = ''
         unsure = False
-        filled = False
         # If question is missing bubbles, mark as unsure.
         if len(question) != self.bubbles_per_q:
             unsure = True

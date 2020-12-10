@@ -415,7 +415,7 @@ def main():
 
     # Grade test.
     grader = Grader()
-    return grader.grade(args['image'], args['v'], args['d'], args['scale'])
+    return grader.grade(args['image'], args['v'], args['d'], args['scale'] )
 
 
 if __name__ == '__main__':
