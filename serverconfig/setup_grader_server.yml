@@ -177,4 +177,9 @@
     service:
       name: uwsgi
       state: restarted
+  - name: restart celery
+    service:
+      name: celery
+      state: restarted
+
     
