@@ -7,6 +7,7 @@ import smtplib
 import ssl
 import tempfile
 import traceback
+from collections import OrderedDict
 from datetime import date
 from email.message import EmailMessage
 
@@ -90,43 +91,42 @@ def grade_test(examinfo):
         imgurls = examinfo['Image Urls']
         test = examinfo['Test']
         email = examinfo['Email']
-        page_answers = []
+        page_answers = OrderedDict()
         print(f'trying to grade from: {email} {test}')
         for i, imgurl in enumerate(imgurls):
             page = i + 1
-            if page == 3 or page == 5:
-                boxes = [1,2]
-            else:
-                boxes = [1]
-            for box in boxes:
-                with tempfile.TemporaryDirectory() as tmpdirname:
-                    imgpath = f'{tmpdirname}/tmpimg'
-                    with open(imgpath, 'wb') as imgfile:
-                        download_success = download_image(imgurl, imgfile)
-                    if download_success:
-                        print(f'Wrote image into temporary file succesfully. Grading page {page} box {box}')
-                        grader = g.Grader()
-                        jsonData = grader.grade(imgpath, False, False, 1.0, test.lower(), page, box)
-                        data = json.loads(jsonData)
-                        if data['status'] == 0:
-                            print(data['answer']['bubbled'])
-                            page_answers.append(data['answer']['bubbled'])
-                        elif data['status'] == 1:
-                            adminerrors.append(data['error'])
-                        elif data['status'] == 2:
-                            usererrors.append(data['error'])
-                        else:
-                            adminerrors.append(data['error'])
+            with tempfile.TemporaryDirectory() as tmpdirname:
+                imgpath = f'{tmpdirname}/tmpimg'
+                with open(imgpath, 'wb') as imgfile:
+                    download_success = download_image(imgurl, imgfile)
+                if download_success:
+                    print(f'Wrote image into temporary file succesfully. Grading page {page}')
+                    grader = g.Grader()
+                    jsonData = grader.grade(imgpath, False, False, 1.0, test.lower(), page)
+                    data = json.loads(jsonData)
+                    if data['status'] == 0:
+                        for box_num, box in enumerate(data['boxes']):
+                            print(box['results']['bubbled'])
+                            page_answers[box_num] = box['results']['bubbled']
                     else:
-                        adminerrors.append('Unable to download {imgurl}')
+                        for box in data['boxes']:
+                            if box['status'] == 1:
+                                adminerrors.append(box['error'])
+                            elif box['status'] == 2:
+                                usererrors.append(box['error'])
+                            else:
+                                adminerrors.append(box[f"Unhandled error type {box['status']} {box['error']}"])
+                else:
+                    adminerrors.append('Unable to download {imgurl}')
         if len(usererrors) > 0:
             usererrors.insert(0, 'Unable to process test. Errors:')
             send_error_message(email, messagelines=usererrors)
         if len(adminerrors) > 0:
             handle_system_error(email, adminerrors)
-        if len(adminerrors) == 0 and len(usererrors) == 0:
-            print('No adminerrors or usererrors, uploading to database meow.')
-            upload_to_database(examinfo, page_answers)
+            if len(adminerrors) == 0 and len(usererrors) == 0:
+                print('No adminerrors or usererrors, uploading to database meow.')
+                for box in page_answers.values():
+                    upload_to_database(examinfo, box)
             #TODO: to be updated based on studypoint feedback
             send_error_message(email, 'Thank you, test has been processed.', ['We have received your test.', 'Thank you','','Your friendly test grading llamas'])
         else:

@@ -277,15 +277,11 @@ class Grader:
         print(f"{data['error']}, {data['status']}") 
         return json.dumps(data)
 
-    def initialize_config(self, test, page_number, box_number):
+    def initialize_config(self, test, page_number):
         
         #Identify configuration file  
-        if box_number == 1:
-            config_fname = (os.path.dirname(os.path.abspath(__file__)) 
-            + f'/config/{test}_page{page_number}.json')
-        else:
-            config_fname = (os.path.dirname(os.path.abspath(__file__)) 
-            + f'/config/{test}_page{page_number}_box{box_number}.json')
+        config_fname = (os.path.dirname(os.path.abspath(__file__)) 
+        + f'/config/{test}_page{page_number}.json')
 
 
         # Read config file into dictionary and scale values. Check for duplicate
@@ -306,7 +302,7 @@ class Grader:
 
         return None
 
-    def grade(self, image_name, verbose_mode, debug_mode, scale, test, page_number, box_number = 1):
+    def grade(self, image_name, verbose_mode, debug_mode, scale, test, page_number):
         """
         Grades a test image and outputs the result to stdout as a JSON object.
 
@@ -319,8 +315,6 @@ class Grader:
             scale (str): Factor to scale image slices by.
             test (str): Name of test
             page_number (int): Page number of test
-            box_number (int): Optional; which box to grade on the test (ordered largest to smallest)
-
         """
         # Initialize dictionary to be returned.
         data = {
@@ -352,7 +346,7 @@ class Grader:
             data['error'] = f'Image {image_name} not found'
             return self.format_error(data)
 
-        config_error = self.initialize_config(test, page_number, box_number)
+        config_error = self.initialize_config(test, page_number)
         if config_error is not None:
             data['status'] = 1
             data['error'] = config_error
@@ -393,6 +387,12 @@ class Grader:
 
             box = TestBox(page, box_config, verbose_mode, debug_mode, scale, test, threshold_constant) #make cleaner with new lines
             data['boxes'].append({'name': box.name, 'results': box.grade(page_number, box_num), 'status': box.status, 'error': box.error})
+        
+        for box in data['boxes']:
+            if box['status'] != 0:
+                data['status'] = 1
+                data['error'] = "One of the boxes in this page failed. For more details, look in the boxes['status'] and boxes['error']"
+                break
 
         return json.dumps(data)
 

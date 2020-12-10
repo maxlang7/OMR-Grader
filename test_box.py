@@ -989,7 +989,7 @@ class TestBox:
         }
         # Find box, find bubbles in box, then grade bubbles.
         try:
-            gradable_box, gradable_im = self.get_box()
+            gradable_box, gradable_im = self.get_box(box_num)
         except BoxNotFoundError:
             data['status'] = 2
             data['error'] = f'page: {page_number}\n Could not find the border around the page.\# %%' + \
