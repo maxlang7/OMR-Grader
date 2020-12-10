@@ -9,7 +9,7 @@
     "box_to_grade": 1,
     "boxes": [
         {
-            "name": "test1",
+            "name": "1",
             "type": "twolineletter",
             "orientation": "left-to-right",
             "multiple_responses": false,
@@ -60,7 +60,7 @@
             ]
         },
         {
-            "name": "test2",
+            "name": "2",
             "type": "twolineletter",
             "orientation": "left-to-right",
             "multiple_responses": false,
@@ -111,7 +111,7 @@
             ]
         },        
         {
-            "name": "test3",
+            "name": "3",
             "type": "twolineletter",
             "orientation": "left-to-right",
             "multiple_responses": false,
@@ -162,7 +162,7 @@
             ]
         },        
         {
-            "name": "test4",
+            "name": "4",
             "type": "twolineletter",
             "orientation": "left-to-right",
             "multiple_responses": false,

@@ -9,7 +9,7 @@
     "box_to_grade": 1,
     "boxes": [
         {
-            "name": "answer",
+            "name": "1",
             "type": "letter",
             "orientation": "left-to-right",
             "multiple_responses": false,

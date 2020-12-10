@@ -39,7 +39,7 @@ SMTP_PORT=os.getenv('SMTP_PORT')
 #TODO Try multipe config scalings in case the box detection is bad
 
 #uploads parsed test data to database
-def upload_to_database(examinfo, page_answers):
+def upload_to_database(examinfo, section, answers):
     conn = pyodbc.connect('Driver={ODBC Driver 17 for SQL Server};'
                       f'Server={DB_SERVER_NAME};'
                       f'Database={DB_NAME};'
@@ -51,18 +51,17 @@ def upload_to_database(examinfo, page_answers):
     cursor.execute("insert into Grader_Submissions "\
                    "(First_Name, Last_Name, Email_Address, Test_Type, Test_ID, Submission_JSON) "  \
                    "values (?,?,?,?,?,?)", examinfo['First Name'], examinfo['Last Name'], 
-                   examinfo['Email'], examinfo['Test'], examinfo['Test ID'], json.dumps(page_answers))
+                   examinfo['Email'], examinfo['Test'], examinfo['Test ID'], json.dumps(answers))
     cursor.execute("SELECT @@IDENTITY")
 
     submission_id = int(cursor.fetchone()[0])
     print(f'created subission id {submission_id}')
-    for pagecounter, page in enumerate(page_answers):
-        print(f'Inserting answers for page {pagecounter} right meow')
+    print(f'Inserting answers for section {section} right meow')
         
-        for qnum, answer in page.items():
-            cursor.execute("insert into Grader_Submissions_Answers "\
-                        "(Submission_ID, Test_Section, Test_Question_Number, Test_Question_Answer)" \
-                        " values (?,?,?,?)", submission_id, pagecounter+1, qnum, answer)
+    for qnum, answer in answers.items():
+        cursor.execute("insert into Grader_Submissions_Answers "\
+                    "(Submission_ID, Test_Section, Test_Question_Number, Test_Question_Answer)" \
+                    " values (?,?,?,?)", submission_id, section, qnum, answer)
     conn.commit()
 
 def download_image(imgurl, imgfile):
@@ -95,6 +94,7 @@ def grade_test(examinfo):
         print(f'trying to grade from: {email} {test}')
         for i, imgurl in enumerate(imgurls):
             page = i + 1
+            page_answers[page] = OrderedDict()
             with tempfile.TemporaryDirectory() as tmpdirname:
                 imgpath = f'{tmpdirname}/tmpimg'
                 with open(imgpath, 'wb') as imgfile:
@@ -105,9 +105,11 @@ def grade_test(examinfo):
                     jsonData = grader.grade(imgpath, False, False, 1.0, test.lower(), page)
                     data = json.loads(jsonData)
                     if data['status'] == 0:
-                        for box_num, box in enumerate(data['boxes']):
+                        for  box in data['boxes']:
                             print(box['results']['bubbled'])
-                            page_answers[box_num] = box['results']['bubbled']
+                            if page_answers[page][box['name']] == None:
+                                page_answers[page][box['name']] = []
+                            page_answers[page][box['name']] += box['results']['bubbled']
                     else:
                         for box in data['boxes']:
                             if box['status'] == 1:
@@ -125,8 +127,9 @@ def grade_test(examinfo):
             handle_system_error(email, adminerrors)
         if len(adminerrors) == 0 and len(usererrors) == 0:
             print('No adminerrors or usererrors, uploading to database meow.')
-            for box in page_answers.values():
-                upload_to_database(examinfo, box)
+            for page in page_answers.values():
+                for section, results in page.items():
+                    upload_to_database(examinfo, section, results)
             #TODO: to be updated based on studypoint feedback
             send_error_message(email, 'Thank you, test has been processed.', ['We have received your test.', 'Thank you','','Your friendly test grading llamas'])
         else:
