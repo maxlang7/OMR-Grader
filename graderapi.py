@@ -39,7 +39,7 @@ SMTP_PORT=os.getenv('SMTP_PORT')
 #TODO Try multipe config scalings in case the box detection is bad
 
 #uploads parsed test data to database
-def upload_to_database(examinfo, section, answers):
+def upload_to_database(examinfo, page_answers):
     conn = pyodbc.connect('Driver={ODBC Driver 17 for SQL Server};'
                       f'Server={DB_SERVER_NAME};'
                       f'Database={DB_NAME};'
@@ -51,17 +51,18 @@ def upload_to_database(examinfo, section, answers):
     cursor.execute("insert into Grader_Submissions "\
                    "(First_Name, Last_Name, Email_Address, Test_Type, Test_ID, Submission_JSON) "  \
                    "values (?,?,?,?,?,?)", examinfo['First Name'], examinfo['Last Name'], 
-                   examinfo['Email'], examinfo['Test'], examinfo['Test ID'], json.dumps(answers))
+                   examinfo['Email'], examinfo['Test'], examinfo['Test ID'], json.dumps(page_answers))
     cursor.execute("SELECT @@IDENTITY")
 
     submission_id = int(cursor.fetchone()[0])
     print(f'created subission id {submission_id}')
     print(f'Inserting answers for section {section} right meow')
         
-    for qnum, answer in answers.items():
-        cursor.execute("insert into Grader_Submissions_Answers "\
-                    "(Submission_ID, Test_Section, Test_Question_Number, Test_Question_Answer)" \
-                    " values (?,?,?,?)", submission_id, section, qnum, answer)
+    for section, answers in page_answers.items():
+        for qnum, answer in answers.items():
+            cursor.execute("insert into Grader_Submissions_Answers "\
+                        "(Submission_ID, Test_Section, Test_Question_Number, Test_Question_Answer)" \
+                        " values (?,?,?,?)", submission_id, section, qnum, answer)
     conn.commit()
 
 def download_image(imgurl, imgfile):
@@ -126,8 +127,7 @@ def grade_test(examinfo):
             handle_system_error(email, adminerrors)
         if len(adminerrors) == 0 and len(usererrors) == 0:
             print('No adminerrors or usererrors, uploading to database meow.')
-            for section, results in page_answers.items():
-                upload_to_database(examinfo, section, results)
+            upload_to_database(examinfo, page_answers)
             #TODO: to be updated based on studypoint feedback
             send_error_message(email, 'Thank you, test has been processed.', ['We have received your test.', 'Thank you','','Your friendly test grading llamas'])
         else:
