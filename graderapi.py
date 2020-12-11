@@ -94,7 +94,6 @@ def grade_test(examinfo):
         print(f'trying to grade from: {email} {test}')
         for i, imgurl in enumerate(imgurls):
             page = i + 1
-            page_answers[page] = OrderedDict()
             with tempfile.TemporaryDirectory() as tmpdirname:
                 imgpath = f'{tmpdirname}/tmpimg'
                 with open(imgpath, 'wb') as imgfile:
@@ -105,11 +104,11 @@ def grade_test(examinfo):
                     jsonData = grader.grade(imgpath, False, False, 1.0, test.lower(), page)
                     data = json.loads(jsonData)
                     if data['status'] == 0:
-                        for  box in data['boxes']:
+                        for box in data['boxes']:
                             print(box['results']['bubbled'])
-                            if page_answers[page][box['name']] == None:
-                                page_answers[page][box['name']] = []
-                            page_answers[page][box['name']] += box['results']['bubbled']
+                            if not box['name'] in page_answers:
+                                page_answers[box['name']] = []
+                            page_answers[box['name']] += box['results']['bubbled']
                     else:
                         for box in data['boxes']:
                             if box['status'] == 1:
@@ -127,9 +126,8 @@ def grade_test(examinfo):
             handle_system_error(email, adminerrors)
         if len(adminerrors) == 0 and len(usererrors) == 0:
             print('No adminerrors or usererrors, uploading to database meow.')
-            for page in page_answers.values():
-                for section, results in page.items():
-                    upload_to_database(examinfo, section, results)
+            for section, results in page.items():
+                upload_to_database(examinfo, section, results)
             #TODO: to be updated based on studypoint feedback
             send_error_message(email, 'Thank you, test has been processed.', ['We have received your test.', 'Thank you','','Your friendly test grading llamas'])
         else:
