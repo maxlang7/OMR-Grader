@@ -107,8 +107,8 @@ def grade_test(examinfo):
                         for box in data['boxes']:
                             print(box['results']['bubbled'])
                             if not box['name'] in page_answers:
-                                page_answers[box['name']] = []
-                            page_answers[box['name']] += box['results']['bubbled']
+                                page_answers[box['name']] = OrderedDict()
+                            page_answers[box['name']].update(box['results']['bubbled'])
                     else:
                         for box in data['boxes']:
                             if box['status'] == 1:
