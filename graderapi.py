@@ -56,9 +56,9 @@ def upload_to_database(examinfo, page_answers):
 
     submission_id = int(cursor.fetchone()[0])
     print(f'created subission id {submission_id}')
-    print(f'Inserting answers for section {section} right meow')
         
     for section, answers in page_answers.items():
+        print(f'Inserting answers for section {section} right meow')
         for qnum, answer in answers.items():
             cursor.execute("insert into Grader_Submissions_Answers "\
                         "(Submission_ID, Test_Section, Test_Question_Number, Test_Question_Answer)" \
