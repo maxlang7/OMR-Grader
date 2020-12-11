@@ -126,7 +126,7 @@ def grade_test(examinfo):
             handle_system_error(email, adminerrors)
         if len(adminerrors) == 0 and len(usererrors) == 0:
             print('No adminerrors or usererrors, uploading to database meow.')
-            for section, results in page.items():
+            for section, results in page_answers.items():
                 upload_to_database(examinfo, section, results)
             #TODO: to be updated based on studypoint feedback
             send_error_message(email, 'Thank you, test has been processed.', ['We have received your test.', 'Thank you','','Your friendly test grading llamas'])
