@@ -182,8 +182,8 @@ class TestBox:
         # Ignore contour if not of sufficient width or height, or not circular.
         if (w < self.bubble_width * 0.8 or 
             h < self.bubble_height * 0.8 or
-            w > self.bubble_width * 2 or 
-            h > self.bubble_height * 2 or
+            w > self.bubble_width * 1.2 or 
+            h > self.bubble_height * 1.2 or
             aspect_ratio < min_aspect_ratio or
             aspect_ratio > max_aspect_ratio):
             if self.debug_mode:
@@ -226,27 +226,34 @@ class TestBox:
                     
         return biggest_bubble
 
-    def get_expected_bubble_locations(self, contour_extremes, group_extremes):
+    def get_expected_bubble_locations(self, box_extremes, group_extremes):
         """
         Uses the corner points to "draw a grid" to figure out where there should be bubbles
-        contour_extremes is min_x,min_y, max_x, max_y
-        group_extremes is a list of contour_extremes (one per group)
+        box_extremes is a list of two things: [xs], [ys]
+        group_extremes is a list of box_extremes (one per group)
         """
         locations = []
-        
-        minx = contour_extremes[0]
-        miny = contour_extremes[1]
-        step_size_y = (contour_extremes[3] - contour_extremes[1])/(self.rows-1)
+        sorted_xs = sorted(box_extremes[0])
+        sorted_ys = sorted(box_extremes[1])
+        top_row_bubble_count = int((len(self.groups) * self.columns)/2)
+        top_row_y = np.median(sorted_ys[:top_row_bubble_count])
+        bot_row_y = np.median(sorted_ys[-top_row_bubble_count])
+        step_size_y = (bot_row_y - top_row_y)/(self.rows -1)
         
         for _ in range(len(self.groups)):
             locations.append([])
         for group_num, group in enumerate(locations):
-            step_size_x = (group_extremes[group_num][2] - group_extremes[group_num][0])/(self.columns-1)
-            minx = group_extremes[group_num][0]
+            sorted_xs = sorted(group_extremes[group_num][0])
+            sorted_ys = sorted(group_extremes[group_num][1])
+            col_bubble_count = max(int(self.rows/2),2)
+            left_col_x = np.median(sorted_xs[1:col_bubble_count])
+            right_col_x = np.median(sorted_xs[-col_bubble_count:-1])
+            step_size_x = (right_col_x-left_col_x)/(self.columns -1)
+
             for row in range(self.rows):
-                y = miny+(step_size_y * row)
+                y = top_row_y +(step_size_y * row)
                 for column in range(self.columns):
-                    x = minx+(step_size_x * column)
+                    x = left_col_x+(step_size_x * column)
                     group.append([x, y])
         return locations
 
@@ -261,19 +268,19 @@ class TestBox:
                     overlapping_bubbles.append(bubble)
         return overlapping_bubbles
 
-    def bubble_cleanup(self, bubbles, contour_extremes, group_extremes, box):
+    def bubble_cleanup(self, bubbles, box_extremes, group_extremes, box):
         """
         Creates a "grid" of where the bubbles should be located based on the coordinates 
         of bubbles we already found. If there isn't a bubble where there is supposed to 
         be one on the grid, then we call rescue_expected_bubbles on that question.
         Lastly, it gets rid of overlapping bubbles.
         """
-        expected_bubble_locations = self.get_expected_bubble_locations(contour_extremes, group_extremes)
+        expected_bubble_locations = self.get_expected_bubble_locations(box_extremes, group_extremes)
         if self.debug_mode:
             colorbox = cv.cvtColor(box, cv.COLOR_GRAY2BGR)
             for group in expected_bubble_locations:
                 for point in group:
-                    cv.circle(colorbox, (int(point[0]), int(point[1])), radius=5, color=(255,0,255), thickness=1)
+                    cv.circle(colorbox, (int(point[0]), int(point[1])), radius=5, color=(0,0,255), thickness=-1)
             cv.imshow('', colorbox)
             cv.waitKey()
         clean_bubbles = []
@@ -298,26 +305,6 @@ class TestBox:
                     clean_bubbles[group_num].append(self.compress_overlapping_bubbles(overlapping_bubbles))
         return clean_bubbles
 
-
-
-    def get_contour_extremes(self, contour, extremes):
-        """
-        Returns the smallest and biggest contour x and y values
-        """
-        (smallest_contour_x, smallest_contour_y, biggest_contour_x, biggest_contour_y) = extremes
-        contour_y = np.mean([p[0][1] for p in contour])
-        contour_x = np.mean([p[0][0] for p in contour])
-        if contour_y > biggest_contour_y:
-            biggest_contour_y = contour_y
-        if contour_x > biggest_contour_x:
-            biggest_contour_x = contour_x
-        if contour_y < smallest_contour_y:
-            smallest_contour_y = contour_y
-        if contour_x < smallest_contour_x:
-            smallest_contour_x = contour_x
-        
-        return [smallest_contour_x, smallest_contour_y, biggest_contour_x, biggest_contour_y]
-
     def get_bubbles(self, box):
         """
         Finds and return bubbles within the test box.
@@ -341,22 +328,26 @@ class TestBox:
         bubbles = []
         for _ in range(len(self.groups)):
             bubbles.append([])
-            group_extremes.append([math.inf, math.inf, 0, 0])
-        contour_extremes = [math.inf, math.inf, 0, 0]
-
+            group_extremes.append([[], []])
+    
+        box_extremes = [[], []]
         # Check if contour is bubble; if it is, add to its appropriate group.
         for contour in contours:
             if self.is_bubble(contour):
                 group_num = self.get_bubble_group(contour)
                 if group_num is not None: 
                     bubbles[group_num].append(contour)
-                    allbubbles.append(contour)
-                    contour_extremes = self.get_contour_extremes(contour, contour_extremes)
-                    group_extremes[group_num] = self.get_contour_extremes(contour, group_extremes[group_num])
+                    allbubbles.append(contour)                
+                    contour_y = np.mean([p[0][1] for p in contour])
+                    contour_x = np.mean([p[0][0] for p in contour])
+                    box_extremes[0].append(contour_x)
+                    box_extremes[1].append(contour_y)
+                    group_extremes[group_num][0].append(contour_x)
+                    group_extremes[group_num][1].append(contour_y)
             else:
                 nonbubbles.append(contour)
 
-        clean_bubbles = self.bubble_cleanup(bubbles, contour_extremes, group_extremes, box)
+        clean_bubbles = self.bubble_cleanup(bubbles, box_extremes, group_extremes, box)
 
         if self.debug_mode:
             #show the detected bubbles in yellow.
@@ -365,6 +356,10 @@ class TestBox:
                 cv.drawContours(colorbox, group, -1, (0,255,255), 3)
             cv.imshow('', colorbox)
             cv.waitKey()
+            cv.drawContours(colorbox, allbubbles, -1, (255,0,140), 3)
+            cv.imshow('', colorbox)
+            cv.waitKey()
+
 
         return clean_bubbles, nonbubbles
 
