@@ -915,7 +915,7 @@ class TestBox:
                     sorter = lambda cntr: cv.boundingRect(cntr)[0]
                 question_sorted = sorted(question, key = sorter)
                 if len(question_sorted) < self.bubbles_per_q and self.orientation == "left-to-right" and question_num <= self.num_questions : #and len(clean_question) > 0:
-                    raise f'We were unable to find the expected number of bubbles ({len(question_sorted)} != {self.bubbles_per_q}) for question {question_num}.'
+                    raise Exception(f'We were unable to find the expected number of bubbles ({len(question_sorted)} != {self.bubbles_per_q}) for question {question_num}.')
                 shrunken_question = self.shrink_bubbles(question_sorted, box)
                 if len(shrunken_question) > 0:
                     bubble_vals[question_num] = self.grade_question(shrunken_question, question_num, i, graybox)
@@ -938,7 +938,8 @@ class TestBox:
             filled_bubble_vals = corrected_top_bubbles[i:]
         else: #not enough filled, need to use distance from the unfilled instead
             for question in corrected_bubbles:
-                if max(question) > np.median(question)*5:
+                stddev = max(np.std(sorted(question)[0:-1]),100)
+                if max(question) > np.median(question)+(stddev*5):
                     filled_bubble_vals.append(max(question))
         return filled_bubble_vals
 
