@@ -356,7 +356,11 @@ class Grader:
 
         # Find largest box within image.
         threshold_constant = 0
-        for threshold_constant in [25, 1, 50, 75]:
+        if test == 'act':
+            threshold_list = [50, 75]
+        if test == 'sat':
+            threshold_list = [25, 50]
+        for threshold_constant in threshold_list:
             page = self.find_page(im, test, debug_mode, threshold_constant)
             if page is not None:
                 break
