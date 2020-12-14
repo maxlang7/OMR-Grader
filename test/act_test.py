@@ -93,32 +93,32 @@ class ExampleActTests(unittest.TestCase):
         jsonData = grader.grade('test/images/act_test1b.png', self.debug_mode, self.verbose_mode, 1.0, 'act', 1)
         data = json.loads(jsonData)
         expected_answers = [ ('A J D H B J B J C J B G A ' +
-                              'H D H B J C H C F B H A F ' +
-                              'D G A F B H B H A F A F C ' +
-                              'J C G D J C J D H B F D J ' +
-                              'A F B G C F D G C G A F C ' +
-                              'H D G D J A F B H D').split(' '),
+                              'H D H D H C G A F B H D F ' +
+                              'D J A J D G B H A F A F C ' +
+                              'J C G C F C J C H B G B J ' +
+                              'D F D F C F B H C H A F C ' +
+                              'H C H C H C H C H C').split(' '),
                             
                              ('D H E F E H E H A K ' +
-                              'C K B H B H D F D F ' +
-                              'B H A H B G E H C G ' +
-                              'C K B H D J A H B F ' +
-                              'E K D G D J B G A F ' +
-                              'D H B K E J A K C J').split(' '),
+                              'C K C G B H D F D F ' +
+                              'B F A H B G E H C F ' +
+                              'D K B H E H A F B F ' +
+                              'D K D G E J B G D F ' +
+                              'E H D K E H D J E G').split(' '),
                             
-                             ('A J C H B J A ' +
-                              'H B J A J B J ' +
-                              'B H B F - F A ' +
-                              'G D J C H C J ' +
-                              'C G A G A J D ' +
-                              'H B J A H').split(' '),
+                             ('D J C H B J A ' +
+                              'H B J A J C F ' +
+                              'B H B F D F B ' +
+                              'H D H C F C J ' +
+                              'A H A G A J A ' +
+                              'J B G B F').split(' '),
                             
-                             ('C G D G C F A ' +
-                              'F D J C F B F ' +
-                              'C F B H B H D ' +
-                              'F B J B H A J ' +
-                              'C F B G D H A ' +
-                              'H B H D J').split(' ')
+                             ('C G D G C F C ' +
+                              'F D J C H C F ' +
+                              'C F B H A J D ' +
+                              'F B G A G A J ' +
+                              'D F B G D J A ' +
+                              'H C G A J').split(' ')
                           ]
                         
         for i, graded_results in enumerate(data['boxes']):
