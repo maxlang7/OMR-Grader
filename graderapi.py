@@ -140,7 +140,7 @@ def send_error_message(email, subject='We had trouble grading your recent test.'
     msg = EmailMessage()
     msg['Subject'] = subject
     msg['From'] = 'adminvpt@studypoint.com'
-    msg['To'] = email
+    msg['To'] = 'adminvpt@studypoint.com'
     msg.set_content('\n'.join(messagelines))
     context = ssl.create_default_context()
     try:
