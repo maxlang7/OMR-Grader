@@ -69,16 +69,17 @@ class Grader:
             cv.CHAIN_APPROX_SIMPLE)
         if test == 'sat':
             contours = sorted(contours, key=cv.contourArea, reverse=True)
-            if len(contours) > 0 and cv.contourArea(contours[0]) > 0.5*imgray.size:
             # Approximate the contour.
-                for contour in contours:
-                    peri = cv.arcLength(contour, True)
-                    approx = cv.approxPolyDP(contour, 0.02 * peri, True)
+            for contour in contours:
+                if cv.contourArea(contour) < 0.5*imgray.size:
+                    continue
+                peri = cv.arcLength(contour, True)
+                approx = cv.approxPolyDP(contour, 0.02 * peri, True)
 
-                    # Verify that contour has four corners.
-                    if len(approx) == 4:
-                        page = approx
-                        break
+                # Verify that contour has four corners.
+                if len(approx) == 4:
+                    page = approx
+                    break
         elif test == 'act':
             contours = self.sort_contours_by_width(contours)
             """
@@ -357,41 +358,57 @@ class Grader:
         # Find largest box within image.
         threshold_constant = 0
         if test == 'act':
-            threshold_list = [50, 75]
+            threshold_list = [25, 50, 75]
         if test == 'sat':
-            threshold_list = [25, 50]
+            threshold_list = [25, 35, 50]
         for threshold_constant in threshold_list:
             page = self.find_page(im, test, debug_mode, threshold_constant)
+
             if page is not None:
-                break
+                # Scale config values based on page size.
+                self.scale_config(config, page.shape[1], page.shape[0])
+                # Rotate page until upright.
+                page = self.upright_image(page, config)
+                if page is None:
+                    data['status'] = 1
+                    data['error'] = f'Could not upright page in {image_name}'
+                    return self.format_error(data)
+
+                # Grade each test box and add result to data.
+                data['boxes'] = []
+                for box_num, box_config in enumerate(config['boxes']):  
+                    #For debugging purposes: if box_num != 3: continue
+                    box_config['x_error'] = config['x_error']
+                    box_config['y_error'] = config['y_error']
+                    box_config['bubble_width'] = config['bubble_width']
+                    box_config['bubble_height'] = config['bubble_height']
+                    box_config['min_bubbles_per_box'] = config['min_bubbles_per_box']
+                    box_config['box_to_grade'] = config['box_to_grade']
+
+                    box = TestBox(page, box_config, verbose_mode, debug_mode, scale, test, threshold_constant) #make cleaner with new lines
+                    results = box.grade(page_number, box_num)
+                    if box.status == 0:
+                        data['boxes'].append({'name': box.name, 'results': results, 'status': box.status, 'error': box.error})
+                    else:
+                        break
+                successful_boxes = 0
+                for box in data['boxes']:
+                    if box['status'] == 0:
+                        successful_boxes+=1
+                if successful_boxes == len(config['boxes']):
+                    break
+    
+
         if page is None:    
             data['status'] = 2
             data['error'] = f'Page not found in {image_name}'
             return self.format_error(data) 
-
-         # Scale config values based on page size.
-        self.scale_config(config, page.shape[1], page.shape[0])
-        # Rotate page until upright.
-        page = self.upright_image(page, config)
-        if page is None:
-            data['status'] = 1
-            data['error'] = f'Could not upright page in {image_name}'
+        
+        if len(config['boxes']) != data['boxes']:
+            data['status'] = 2
+            data['error'] = f'We found a page but were unable to find any boxes in {image_name}'
             return self.format_error(data)
 
-        # Grade each test box and add result to data.
-        data['boxes'] = []
-        for box_num, box_config in enumerate(config['boxes']):  
-            #For debugging purposes: if box_num != 3: continue
-            box_config['x_error'] = config['x_error']
-            box_config['y_error'] = config['y_error']
-            box_config['bubble_width'] = config['bubble_width']
-            box_config['bubble_height'] = config['bubble_height']
-            box_config['min_bubbles_per_box'] = config['min_bubbles_per_box']
-            box_config['box_to_grade'] = config['box_to_grade']
-
-            box = TestBox(page, box_config, verbose_mode, debug_mode, scale, test, threshold_constant) #make cleaner with new lines
-            data['boxes'].append({'name': box.name, 'results': box.grade(page_number, box_num), 'status': box.status, 'error': box.error})
-        
         for box in data['boxes']:
             if box['status'] != 0:
                 data['status'] = 1

@@ -371,7 +371,7 @@ class TestBox:
         areas_to_erase = [np.array(([0, 0], [im_width, 0], [im_width, im_height], [0, im_height]))]
         cv.drawContours(im, areas_to_erase, -1, 0, 10)
         return im
-    def box_contains_bubbles(self, box, threshold,):
+    def box_contains_bubbles(self, box, threshold):
         (x, y, w, h) = cv.boundingRect(box)
         bubbles = []
         # Some boxes are too small and can't be 4-point-transformed so they aren't gonna be the one we want anyway.
@@ -384,9 +384,9 @@ class TestBox:
         #print("box", x, y, w, h)
         im = utils.get_transform(box, threshold)
         im = self.mask_edges(im)
-        if self.debug_mode:
-            cv.imshow('', im)
-            cv.waitKey()
+        # if self.debug_mode:
+        #     cv.imshow('', im)
+        #     cv.waitKey()
         contours, _ = cv.findContours(im, cv.RETR_EXTERNAL, 
             cv.CHAIN_APPROX_SIMPLE)
         
@@ -1035,7 +1035,12 @@ class TestBox:
 
             bubbles, nonbubbles = self.get_bubbles(gradable_box)
 
-            bubble_vals = self.grade_bubbles(bubbles, nonbubbles, gradable_box, gradable_im)
+            try:
+                bubble_vals = self.grade_bubbles(bubbles, nonbubbles, gradable_box, gradable_im)
+            except Exception as err:
+                data['status'] = 1
+                data['error'] = err
+                return data
             self.bubbled = self.refine_answers(bubble_vals, self.bubbled)
             if len(self.bubbled) == self.num_questions:
                 self.status = 0
