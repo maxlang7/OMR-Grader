@@ -390,7 +390,7 @@ class TestBox:
         contours, _ = cv.findContours(im, cv.RETR_EXTERNAL, 
             cv.CHAIN_APPROX_SIMPLE)
         
-        colorim = cv.cvtColor(im, cv.COLOR_GRAY2BGR)
+        #colorim = cv.cvtColor(im, cv.COLOR_GRAY2BGR)
         for contour in contours:
             # if self.debug_mode:
             #     #show the detected bubbles in blue.
@@ -451,7 +451,7 @@ class TestBox:
         """
         # Blur and threshold the page, then find boxes within the page.
         thresh_page = utils.get_threshold(self.page, self.threshold_constant)
-        thresh_page_light = cv.bitwise_not(self.page)
+        inverted_page = cv.bitwise_not(self.page)
         contours, _ = cv.findContours(thresh_page, cv.RETR_TREE, 
             cv.CHAIN_APPROX_SIMPLE)
         potential_boxes = []
@@ -459,13 +459,10 @@ class TestBox:
         for contour in contours:
             if self.is_box(contour, thresh_page):
                 if not self.similar_box_found(contour, potential_boxes):
-                    potential_boxes.append(contour) 
-        if len(potential_boxes) == 0:
-            return None
-        #sorting potential boxes by y position
-        boundingBoxes = [cv.boundingRect(box) for box in potential_boxes]
-        (potential_boxes, boundingBoxes) = zip(*sorted(zip(potential_boxes, boundingBoxes), key=lambda b:b[1][1]))
-
+                    potential_boxes.append(contour)
+        #sorting the potential boxes by y position
+        potential_boxes = sorted(potential_boxes, key=lambda b:cv.boundingRect(b)[1])
+            
         if len(potential_boxes) == 0:
             raise BoxNotFoundError('No boxes found')
         elif len(potential_boxes) < self.box_to_grade:
@@ -477,7 +474,7 @@ class TestBox:
                 cv.imshow('', colorbox)
                 cv.waitKey()                        
             return utils.get_transform(potential_boxes[box_num], thresh_page), \
-                   utils.get_transform(potential_boxes[box_num], thresh_page_light)
+                   utils.get_transform(potential_boxes[box_num], inverted_page)
         
     def init_questions(self):
         """
@@ -1027,7 +1024,7 @@ class TestBox:
             gradable_box, gradable_im = self.get_box(box_num)
         except BoxNotFoundError:
             data['status'] = 2
-            data['error'] = f'page: {page_number}\n Could not find the border around the page.\# %%' + \
+            data['error'] = f'page: {page_number}\n Could not find the border around the page.\n' + \
             'We need this border to straighten and scale the image before grading.\n' + \
             'Please refer to the example document and resubmit.'
             return data
