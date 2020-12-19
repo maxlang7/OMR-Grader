@@ -7,9 +7,16 @@ from wand.image import Image
 
 class ExampleImageTests(unittest.TestCase):
     #turn both to true to see images.
-    verbose_mode = True
+    verbose_mode = False
     debug_mode = verbose_mode
 
+    def test_FAIL(self):
+        grader = g.Grader()
+        jsonData = grader.grade(f'test/images/failtest1.JPG', self.debug_mode, self.verbose_mode, 1.0, 'sat', 1)
+        data = json.loads(jsonData)
+        self.assertIsNotNone(data)
+        self.assertEqual(data['status'], 2)
+    
     def test_page1(self):
         grader = g.Grader()
         jsonData = grader.grade('test/images/sat_test1.jpg', self.debug_mode, self.verbose_mode, 1.0, 'sat', 1)

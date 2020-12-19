@@ -381,7 +381,7 @@ class Grader:
         # Grade each test box and add result to data.
         data['boxes'] = []
         for box_num, box_config in enumerate(config['boxes']):  
-            #For debugging purposes: if box_num != 0: continue
+            #For debugging purposes: if box_num != 3: continue
             box_config['x_error'] = config['x_error']
             box_config['y_error'] = config['y_error']
             box_config['bubble_width'] = config['bubble_width']
@@ -400,27 +400,3 @@ class Grader:
 
         return json.dumps(data)
 
-
-def main():
-    """
-    Parses command line arguments and grades the specified test.
-
-    """
-    # Parse the arguments.
-    ap = argparse.ArgumentParser()
-    ap.add_argument('-i', '--image', required=True, 
-        help='path to the input image')
-    ap.add_argument('-v', action='store_true', required=False, 
-        help='enable verbose mode')
-    ap.add_argument('-d', action='store_true', required=False, 
-        help='enable debug mode')
-    ap.add_argument('-s', '--scale', required=False, help='scale image slices')
-    args = vars(ap.parse_args())
-
-    # Grade test.
-    grader = Grader()
-    return grader.grade(args['image'], args['v'], args['d'], args['scale'] )
-
-
-if __name__ == '__main__':
-    main()
