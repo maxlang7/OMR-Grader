@@ -164,8 +164,14 @@ class ExampleActTests(unittest.TestCase):
             self.assertEqual(len(graded_results['results']['bubbled']),len(expected_answers[i]))        
             self.assertEqual(list(graded_results['results']['bubbled'].values()), expected_answers[i])
             
-
-            
+    def test_act_page1d(self):
+        grader = g.Grader()
+        jsonData = grader.grade('test/images/act_test1d.jpg', self.debug_mode, self.verbose_mode, 1.0, 'act', 1)
+        data = json.loads(jsonData)
+        answer_counts = [75, 60, 40, 40]
+        for i, graded_results in enumerate(data['boxes']):
+            print(f'ACT test {i+1}')
+            self.assertEqual(len(graded_results['results']['bubbled']),answer_counts[i])  
                     
 if __name__ == '__main__':
     unittest.main()
