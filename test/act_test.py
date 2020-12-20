@@ -7,7 +7,7 @@ from wand.image import Image
 
 class ExampleActTests(unittest.TestCase):
     #turn both to true to see images.
-    verbose_mode = True
+    verbose_mode = False
     debug_mode = verbose_mode
 
     def test_act_page1(self):
@@ -42,8 +42,8 @@ class ExampleActTests(unittest.TestCase):
                               'F B J B H A J ' +
                               'C F B G D J A ' +
                               'H B F D J').split(' ')
-                          ]
-                        
+                            ]
+        self.assertEqual(data['status'], 0)        
         for i, graded_results in enumerate(data['boxes']):
             print(f'ACT test {i+1}')
             self.assertEqual(len(graded_results['results']['bubbled']),len(expected_answers[i]))        
@@ -164,14 +164,21 @@ class ExampleActTests(unittest.TestCase):
             self.assertEqual(len(graded_results['results']['bubbled']),len(expected_answers[i]))        
             self.assertEqual(list(graded_results['results']['bubbled'].values()), expected_answers[i])
             
-    def test_act_page1d(self):
-        grader = g.Grader()
-        jsonData = grader.grade('test/images/act_test1d.jpg', self.debug_mode, self.verbose_mode, 1.0, 'act', 1)
-        data = json.loads(jsonData)
+    def test_act_simple(self):
         answer_counts = [75, 60, 40, 40]
-        for i, graded_results in enumerate(data['boxes']):
-            print(f'ACT test {i+1}')
-            self.assertEqual(len(graded_results['results']['bubbled']),answer_counts[i])  
-                    
+        for testsuffix in ['d', 'e', 'f', 'g']:
+            print(f'act test 1{testsuffix}')
+            grader = g.Grader()
+            jsonData = grader.grade(f'test/images/act_test1{testsuffix}.jpg', self.debug_mode, self.verbose_mode, 1.0, 'act', 1)
+            data = json.loads(jsonData)
+
+            self.assertIn('boxes', data, f"We couldn't find any boxes because we enountered this error: {data['error']}")
+            self.assertGreater(len(data['boxes']), 0)
+
+            for i, graded_results in enumerate(data['boxes']):
+                print(f'ACT test 1{testsuffix} box {i+1}')
+                self.assertEqual(len(graded_results['results']['bubbled']),answer_counts[i], len(graded_results['results']['bubbled']))  
+                blank_answers_num = len([a for a in graded_results['results']['bubbled'] if a == '-'])
+                self.assertEqual(blank_answers_num, 0)
 if __name__ == '__main__':
     unittest.main()
