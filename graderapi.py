@@ -110,14 +110,16 @@ def grade_test(examinfo):
                             if not box['name'] in page_answers:
                                 page_answers[box['name']] = OrderedDict()
                             page_answers[box['name']].update(box['results']['bubbled'])
-                    else:
+                    elif 'boxes' in data:
                         for box in data['boxes']:
                             if box['status'] == 1:
                                 adminerrors.append(box['error'])
                             elif box['status'] == 2:
                                 usererrors.append(box['error'])
                             else:
-                                adminerrors.append(box[f"Unhandled error type {box['status']} {box['error']}"])
+                                adminerrors.append(f"Unhandled error type {box['status']} {box['error']}")
+                    else:
+                        adminerrors.append(f"No boxes found because of this error: {data['error']}")
                 else:
                     adminerrors.append('Unable to download {imgurl}')
         if len(usererrors) > 0:
