@@ -88,7 +88,10 @@ class Grader:
             and find the one with the largest y position (closest to the bottom) 
             that is at least 80% of the first 6 minimum line we calculated before
             """
-            line_contours = self.get_line_contours(contours[:20])
+            
+            line_contours = self.get_line_contours(contours[:20])\
+            
+            
             b1x, b1y, b2x, b2y = self.get_first_and_last_points(line_contours[0], 'x')
             t1x, t1y, t2x, t2y = self.get_first_and_last_points(line_contours[-1], 'x')
             """
@@ -175,6 +178,8 @@ class Grader:
     def get_line_contours(self, contours):
         #sorts contours by y position
         line_contours = []
+        if len(contours) < 6:
+            raise Exception('We could not find the detailed features in your image. Please send an image that has a high enough resolution')
         min_line_length = self.get_contour_width(contours[5])*0.8
         max_line_length = self.get_contour_width(contours[5])*1.5
         # We are looping through the contours that are sorted by y position. 
@@ -275,7 +280,6 @@ class Grader:
         self.scale_config_r(config, x_scale, y_scale, re_x, re_y)
     
     def format_error(self, data):
-        print(f"{data['error']}, {data['status']}") 
         return json.dumps(data)
 
     def initialize_config(self, test, page_number):
@@ -303,6 +307,16 @@ class Grader:
 
         return None
 
+    def initialize_return_data(self):
+        """
+        Initializes the data structure we use to return answers and errors/statuses
+        """
+        data = {
+            'status' : 0,
+            'error' : ''
+        }
+        return data
+
     def grade(self, image_name, verbose_mode, debug_mode, scale, test, page_number):
         """
         Grades a test image and outputs the result to stdout as a JSON object.
@@ -318,10 +332,7 @@ class Grader:
             page_number (int): Page number of test
         """
         # Initialize dictionary to be returned.
-        data = {
-            'status' : 0,
-            'error' : ''
-        }
+        data = self.initialize_return_data()
 
         # Cast str to float for scale.
         if scale is None:
@@ -331,7 +342,7 @@ class Grader:
                 scale = float(scale)
             except ValueError:
                 data['status'] = 1
-                data['error'] = f'Scale {scale} must be of type float'
+                data['error'] = f'Scale {scale} must be castable to type float'
                 return self.format_error(data)
 
         # Verify that scale is positive.
@@ -362,8 +373,13 @@ class Grader:
         if test == 'sat':
             threshold_list = [25, 35, 50]
         for threshold_constant in threshold_list:
-            page = self.find_page(im, test, debug_mode, threshold_constant)
-
+            data = self.initialize_return_data()
+            try:
+                page = self.find_page(im, test, debug_mode, threshold_constant)
+            except Exception as e:
+                data['status'] = 2
+                data['error'] = str(e)
+                return self.format_error(data)
             if page is not None:
                 # Scale config values based on page size.
                 self.scale_config(config, page.shape[1], page.shape[0])
@@ -401,12 +417,12 @@ class Grader:
 
         if page is None:    
             data['status'] = 2
-            data['error'] = f'Page not found in {image_name}'
+            data['error'] = f'We were unable to find the outer features of the test. Please refer to the guidelines and resubmit your test.'
             return self.format_error(data) 
         
-        if len(config['boxes']) != data['boxes']:
-            data['status'] = 2
-            data['error'] = f'We found a page but were unable to find any boxes in {image_name}'
+        if len(config['boxes']) != len(data['boxes']):
+            data['status'] = 1
+            data['error'] = f'We found a page but were unable to find any boxes in {image_name} with threshold constant:{threshold_constant}'
             return self.format_error(data)
 
         for box in data['boxes']:
