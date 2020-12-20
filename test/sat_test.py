@@ -68,10 +68,10 @@ class ExampleImageTests(unittest.TestCase):
         jsonData = grader.grade('test/images/sat_test1c.JPG', self.debug_mode, self.verbose_mode, 1.0, 'sat', 1)
         data = json.loads(jsonData)
         self.assertEqual(len(list(data['boxes'][0]['results']['bubbled'].values())),52)        
-        self.assertEqual(list(data['boxes'][0]['results']['bubbled'].values()), 'A C C D A D D B C B B D D'.split(' ') +
-                                                                    'A D B C B C A C A D A B D'.split(' ') +
-                                                                    'B A D C D B C B C B C D C'.split(' ') +
-                                                                    'A D A C A C A D B B C C C'.split(' ') )
+        self.assertEqual(list(data['boxes'][0]['results']['bubbled'].values()), 'B C C D D C D B C B D D D'.split(' ') +
+                                                                    'A D B C B D A C A D A B C'.split(' ') +
+                                                                    'B C D C D B C B C B C D D'.split(' ') +
+                                                                    'A D A C A C A C B B B C C'.split(' ') )
     
     def test_jpgtest(self):
         grader = g.Grader()
@@ -131,11 +131,11 @@ class ExampleImageTests(unittest.TestCase):
         data = json.loads(jsonData)
 
         self.assertEqual(len(list(data['boxes'][0]['results']['bubbled'].values())),44)        
-        self.assertEqual(list(data['boxes'][0]['results']['bubbled'].values()), 'D B C B D C B C A'.split(' ') +
-                                                    'B A A D C C A D B'.split(' ') +
-                                                    'A B B D A C C A C'.split(' ') +
-                                                    'C D B B D D B D C'.split(' ') +
-                                                    'B D B D D D A C'.split(' ') )                                            
+        self.assertEqual(list(data['boxes'][0]['results']['bubbled'].values()), 'D B C B D C B A A'.split(' ') +
+                                                    'C A A D C C A D B'.split(' ') +
+                                                    'A B B D D C C A C'.split(' ') +
+                                                    'B B B B D D D D B'.split(' ') +
+                                                    'B D C A A D B B'.split(' ') )                                            
     def test_page3(self):
         grader = g.Grader()
         jsonData = grader.grade('test/images/sat_test3.jpg', self.debug_mode, self.verbose_mode, 1.0, 'sat', 3)
@@ -192,12 +192,12 @@ class ExampleImageTests(unittest.TestCase):
         jsonData = grader.grade('test/images/sat_test3c.JPG', self.debug_mode, self.verbose_mode, 1.0, 'sat', 3)
         data = json.loads(jsonData)
 
-        expected_answers = [ (  'C A A'.split(' ') +
-                                'A C B'.split(' ') +
-                                'C B A'.split(' ') +
-                                'C C D'.split(' ') +
-                                'B C B'.split(' ') ),
-                             [1.0, '-', '-', '-', 110.0]
+        expected_answers = [ (  'D A A'.split(' ') +
+                                'C B C'.split(' ') +
+                                'B D A'.split(' ') +
+                                'C B D'.split(' ') +
+                                'C C B'.split(' ') ),
+                             [3.0, 32.0, 1.5, 8.0, 144.0]
                            ]
 
         for i, graded_results in enumerate(data['boxes']):
@@ -283,8 +283,8 @@ class ExampleImageTests(unittest.TestCase):
         jsonData = grader.grade('test/images/sat_test5c.JPG', self.debug_mode, self.verbose_mode, 1.0, 'sat', 5)
         data = json.loads(jsonData)
 
-        expected_answers = [ [102.0, 2.0, 30.0, 22.1, '-'],
-                             ['-', 100.0, 2.7]
+        expected_answers = [ [34.0, 2.0, 30.0, 4.77, 2.0],
+                             ['-', 576.0, 0.8]
                            ]
 
         for i, graded_results in enumerate(data['boxes']):
