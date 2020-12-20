@@ -23,6 +23,8 @@ def get_threshold(im, constant):
     neighborhood = int(w*h/15000)
     if neighborhood % 2 == 0:
         neighborhood = neighborhood + 1
+    if neighborhood <= 1:
+        neighborhood = 3
     blurred = cv.GaussianBlur(im, (1, 1), 0)
     blurred = cv.bilateralFilter(blurred,5,50,50)
     threshold = cv.adaptiveThreshold(blurred,255,cv.ADAPTIVE_THRESH_GAUSSIAN_C,\
