@@ -5,3 +5,4 @@ calQuiz/
 .vscode/*
 serverconfig/hosts
 .env
+Database query.txt
