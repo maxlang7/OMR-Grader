@@ -163,14 +163,15 @@ class Grader:
         for c in line_contours:
             # calculating height by finding difference beween y values.
             current_box_height = self.get_line_contour_y(c) - self.get_line_contour_y(prev_contour)
+            erase_height = int(current_box_height*0.05)
             if current_box_height > min_box_height:
                 ty = self.get_line_contour_y(prev_contour)
                 by = self.get_line_contour_y(c)
                 boxes_to_draw.append(np.array(([x,ty],[x+w,ty],[x+w,by-5], [x,by-5]), dtype=np.int32))
-                areas_to_erase.append(np.array(([x,ty-8],[x+w,ty-8],[x+w,ty+8], [x,ty+8]), dtype=np.int32))
+                areas_to_erase.append(np.array(([x,ty-erase_height],[x+w,ty-erase_height],[x+w,ty+erase_height], [x,ty+erase_height]), dtype=np.int32))
             prev_contour = c
         
-        cv.drawContours(image, areas_to_erase, -1, 255, 40)   
+        cv.drawContours(image, areas_to_erase, -1, 255, -1)   
         cv.drawContours(image, boxes_to_draw[1:], -1, 0, 2)
         return image
 
@@ -180,13 +181,14 @@ class Grader:
         line_contours = []
         if len(contours) < 6:
             raise Exception('We could not find the detailed features in your image. Please send an image that has a high enough resolution')
-        min_line_length = self.get_contour_width(contours[5])*0.8
+        median_height = np.median([cv.boundingRect(c)[3] for c in contours[1:6]])
+        min_line_length = self.get_contour_width(contours[5])*0.85
         max_line_length = self.get_contour_width(contours[5])*1.5
         # We are looping through the contours that are sorted by y position. 
         # keeps only those that are about right length
         for c in sorted(contours, key=lambda y: self.get_contour_width(y), reverse=False): #the contours sorted by y postion on page
             w = self.get_contour_width(c)
-            if w >= min_line_length and w <= max_line_length:
+            if w >= min_line_length and w <= max_line_length and cv.boundingRect(c)[3] < median_height*1.5:
                 line_contours.append(c)
         return sorted(line_contours, key=lambda a: self.get_line_contour_y(a), reverse = False)
 
