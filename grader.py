@@ -257,11 +257,10 @@ class Grader:
         # We have to do some filtering first so that we don't do merge_lines on every single contour
         plausable_line_properties = []
         for cp in contour_properties:
-            if cp['average_deviation'] < 20:
+            if cp['average_deviation'] < 50:
                 plausable_line_properties.append(cp)
 
         # take two lines close together condense them into one
-        #TODO Fix merge lines so that we don't get multiple copies of same lines
         plausable_line_properties = self.merge_lines(plausable_line_properties)
         longest_line_properties = sorted(plausable_line_properties, key=lambda cp: cp['width'], reverse = True)[:6]
         min_line_length = np.median([cp['width'] for cp in longest_line_properties])*0.85
