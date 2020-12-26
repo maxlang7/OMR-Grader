@@ -10,7 +10,7 @@ class ExampleImageTests(unittest.TestCase):
     verbose_mode = False
     debug_mode = verbose_mode
 
-    def test_FAIL(self):
+    def test_bad_image(self):
         grader = g.Grader()
         jsonData = grader.grade(f'test/images/failtest1.JPG', self.debug_mode, self.verbose_mode, 1.0, 'sat', 1)
         data = json.loads(jsonData)
