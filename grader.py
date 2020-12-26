@@ -268,16 +268,12 @@ class Grader:
         max_line_length = np.median([cp['width'] for cp in longest_line_properties])*1.5
         median_height = np.median([cp['height'] for cp in longest_line_properties])
         # Now that we've finished merging, we are free to check heights and deviations
-        colorim = cv.cvtColor(imgray, cv.COLOR_GRAY2BGR)
         for cp in plausable_line_properties:
             c = cp['contour']
             w = cp['width']
             if cv.boundingRect(c)[3] < median_height*2 and \
                w >= min_line_length and w <= max_line_length:
                 line_contours.append(c)
-                cv.drawContours(colorim,cp['contour'], -1, (0,0,255), 10)
-        cv.imshow('', colorim)
-        cv.waitKey()        
                 
 
         if len(line_contours) < 6:
