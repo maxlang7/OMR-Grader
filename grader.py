@@ -88,8 +88,7 @@ class Grader:
             and find the one with the largest y position (closest to the bottom) 
             that is at least 80% of the first 6 minimum line we calculated before
             """
-            
-            line_contours = self.get_line_contours(contours[:20])\
+            line_contours = self.get_line_contours(contours[:20], imgray)
             
             
             b1x, b1y, b2x, b2y = self.get_first_and_last_points(line_contours[0], 'x')
@@ -131,6 +130,35 @@ class Grader:
             transformed_image = self.act_draw_boxes(transformed_image, threshold_constant)
         return transformed_image
 
+    def merge_lines(self, contour_properties):
+        clean_contour_properties = []
+        #TODO turn these numbers into a percentage of the page to account for different resolutions
+        y_threshold = 10
+        x_threshold = 3
+        for i, cp in enumerate(contour_properties):
+            merged = False
+            if 'ignored' in cp:
+                continue
+            for cp2 in contour_properties[i+1:]:
+                # We will merge contours only if:
+                # the slopes of cp and cp2 are similar
+                # the first y positions are similar
+                # they have about the same starting and ending x's
+                if np.abs(cp['slope'] - cp2['slope']) < 0.01 and \
+                   np.abs(cp['first_point'][1] - cp2['first_point'][1]) < y_threshold and \
+                   np.abs(cp['first_point'][0] - cp2['first_point'][0]) < x_threshold and \
+                   np.abs(cp['last_point'][0] - cp2['last_point'][0]) < x_threshold:
+                        clean_contour_properties.append(cp)
+                        cp2['ignored'] = True
+                        merged = True
+                        break
+            # If cp didn't get a merge partner then its still a potential line contour. 
+            # If it did find one, we already broke out and will never get here
+            # If it is a partner of a line that was already merged, we already got rid of it above
+            if not merged:
+                clean_contour_properties.append(cp)
+        return clean_contour_properties
+
     def get_line_contour_y(self, line_contour):
         """
         Gets the y position of a line contour by finding the median y of all the points.
@@ -148,7 +176,7 @@ class Grader:
         contours, _ = cv.findContours(threshold, cv.RETR_EXTERNAL, 
             cv.CHAIN_APPROX_SIMPLE)
         contours = self.sort_contours_by_width(contours)
-        line_contours = sorted(self.get_line_contours(contours[:20]), key=lambda y: self.get_line_contour_y(y), reverse=False)
+        line_contours = sorted(self.get_line_contours(contours[:20], image), key=lambda y: self.get_line_contour_y(y), reverse=False)
 
             
         ty = self.get_line_contour_y(line_contours[0])
@@ -175,30 +203,94 @@ class Grader:
         cv.drawContours(image, boxes_to_draw[1:], -1, 0, 2)
         return image
 
+    def get_contour_properties(self, contour):
+        x, y, w, h = cv.boundingRect(contour)
+        first_point = None
+        last_point = None
+        for point in contour:
+            point_list = [point[0][0], point[0][1]]
+            if point_list == [x, y]:
+                first_point = [x, y]
+                last_point = [x+w, y+h]
+                slope = (h/w)*-1
+                break
+        # we didn't find one in the upper left, so first_point is lower left
+        if first_point is None:
+            first_point = [x, y]
+            last_point = [x+w, y-h]
+            slope = h/w
+        
+        return {
+                'first_point': first_point, 
+                'last_point': last_point,
+                'slope': slope,
+                'width': w,
+                'height': h,
+                'contour': contour
+               }
 
-    def get_line_contours(self, contours):
+    def get_line_contours(self, contours, imgray):
         #sorts contours by y position
         line_contours = []
         if len(contours) < 6:
             raise Exception('We could not find the detailed features in your image. Please send an image that has a high enough resolution')
-        median_height = np.median([cv.boundingRect(c)[3] for c in contours[1:6]])
-        min_line_length = self.get_contour_width(contours[5])*0.85
-        max_line_length = self.get_contour_width(contours[5])*1.5
+        contour_properties = []
         # We are looping through the contours that are sorted by y position. 
         # keeps only those that are about right length
-        for c in sorted(contours, key=lambda y: self.get_contour_width(y), reverse=False): #the contours sorted by y postion on page
-            w = self.get_contour_width(c)
-            if w >= min_line_length and w <= max_line_length and cv.boundingRect(c)[3] < median_height*1.5:
+        for contour in contours:
+            contour_properties.append(self.get_contour_properties(contour))
+        for properties in contour_properties:
+            deviations = []
+            slope = properties['slope']
+            first_point = properties['first_point']
+            for point in properties['contour']:
+                point_x = point[0][0] - first_point[0]
+                point_y = point[0][1] - first_point[1]
+                pred_y = slope * point_x
+                deviations.append(np.abs(point_y-pred_y))
+            
+            
+            average_deviation = np.average(deviations)
+            #print(average_deviation)
+            properties['average_deviation'] = average_deviation
+
+        # We have to do some filtering first so that we don't do merge_lines on every single contour
+        plausable_line_properties = []
+        for cp in contour_properties:
+            if cp['average_deviation'] < 20:
+                plausable_line_properties.append(cp)
+
+        # take two lines close together condense them into one
+        #TODO Fix merge lines so that we don't get multiple copies of same lines
+        plausable_line_properties = self.merge_lines(plausable_line_properties)
+        longest_line_properties = sorted(plausable_line_properties, key=lambda cp: cp['width'], reverse = True)[:6]
+        min_line_length = np.median([cp['width'] for cp in longest_line_properties])*0.85
+        max_line_length = np.median([cp['width'] for cp in longest_line_properties])*1.5
+        median_height = np.median([cp['height'] for cp in longest_line_properties])
+        # Now that we've finished merging, we are free to check heights and deviations
+        colorim = cv.cvtColor(imgray, cv.COLOR_GRAY2BGR)
+        for cp in plausable_line_properties:
+            c = cp['contour']
+            w = cp['width']
+            if cv.boundingRect(c)[3] < median_height*2 and \
+               w >= min_line_length and w <= max_line_length:
                 line_contours.append(c)
+                cv.drawContours(colorim,cp['contour'], -1, (0,0,255), 10)
+        cv.imshow('', colorim)
+        cv.waitKey()        
+                
+
+        if len(line_contours) < 6:
+            #find contours with similar slopes and merge them
+            raise Exception("We couldn't find enough lines between the test sections to indentify where the bubbles are.")
+        if len(line_contours) > 6:
+            # take two lines close together  condense them into one
+            raise Exception("We found too many lines between the test sections.")            
         return sorted(line_contours, key=lambda a: self.get_line_contour_y(a), reverse = False)
-
-
 
     def image_is_upright(self, page, config):
         """
-      This function is a placeholder if you ever need to make sure an image is upright. In most cases it is pretty much useless.
-
-
+        This function is a placeholder if you ever need to make sure an image is upright. In most cases it is pretty much useless.
 
         Args:
             page (numpy.ndarray): An ndarray representing the test image.
