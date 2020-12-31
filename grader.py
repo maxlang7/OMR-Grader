@@ -130,11 +130,11 @@ class Grader:
             transformed_image = self.act_draw_boxes(transformed_image, threshold_constant)
         return transformed_image
 
-    def merge_lines(self, contour_properties):
+    def merge_lines(self, contour_properties, imgray):
         clean_contour_properties = []
-        #TODO turn these numbers into a percentage of the page to account for different resolutions
-        y_threshold = 10
-        x_threshold = 3
+        page_height, page_width = imgray.shape
+        y_threshold = 0.007*page_height
+        x_threshold = 0.1*page_width
         for i, cp in enumerate(contour_properties):
             merged = False
             if 'ignored' in cp:
