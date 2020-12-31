@@ -216,15 +216,16 @@ class TestBox:
         """ 
         if len(bubbles) == 1:
             return bubbles[0]
-        biggest_rect = cv.boundingRect(bubbles[0])
+        biggest_area = cv.contourArea(bubbles[0])
         biggest_bubble = bubbles[0]
-        for contour in bubbles:
-            contour_rect = cv.boundingRect(contour)
-            if contour_rect[2] * contour_rect[3] >= biggest_rect[2] * biggest_rect[3]:
-                biggest_rect = contour_rect
+        biggest_i = 0
+        for i, contour in enumerate(bubbles):
+            contour_area = cv.contourArea(contour)
+            if contour_area >= biggest_area:
+                biggest_area = contour_area
                 biggest_bubble = contour
-                    
-        return biggest_bubble
+                biggest_i = i  
+        return biggest_bubble, biggest_i
 
     def get_expected_bubble_locations(self, box_extremes, group_extremes):
         """
