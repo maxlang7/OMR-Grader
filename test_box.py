@@ -1032,15 +1032,25 @@ class TestBox:
             if treatment == 'erase_lines':
                 gradable_box = self.erase_lines(gradable_box)
 
-            bubbles, nonbubbles = self.get_bubbles(gradable_box)
+            for constant in np.linspace(0, 30, 75):
+                if constant > 0:
+                    gradable_box = utils.get_threshold(cv.bitwise_not(gradable_im), constant)
+                bubbles, nonbubbles = self.get_bubbles(gradable_box)
+                
+                expected_bubble_num = self.bubbles_per_q*self.num_questions
+                num_bubbles = sum([len(g) for g in bubbles])
+                print(f"Found {num_bubbles} with threshold constant {constant}")
+                if num_bubbles == expected_bubble_num:
+                    break
 
             try:
-                bubble_vals = self.grade_bubbles(bubbles, nonbubbles, gradable_box, gradable_im)
+                bubble_vals = self.get_bubble_vals(bubbles, nonbubbles, gradable_box, gradable_im)
             except Exception as err:
+                print(err)
                 data['status'] = 1
                 data['error'] = err
                 return data
-            self.bubbled = self.refine_answers(bubble_vals, self.bubbled)
+            self.bubbled = self.grade_bubbles(bubble_vals, self.bubbled)
             if len(self.bubbled) == self.num_questions:
                 self.status = 0
                 self.error = ''
