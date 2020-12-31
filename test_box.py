@@ -194,9 +194,11 @@ class TestBox:
         return True
 
     def contours_overlap(self, contour1, contour2):
+        if contour1 is None:
+            return False
         (x, y, w, h) = cv.boundingRect(contour1)
         if len(contour2) == 2:
-            (x1, y1, w1, h1) = [contour2[0], contour2[1], 1, 1]
+            (x1, y1, w1, h1) = [contour2[0], contour2[1], self.bubble_width*0.5, self.bubble_height*0.5]
         else:
             (x1, y1, w1, h1) = cv.boundingRect(contour2)
         # it is easier to calculate the non-overlapping cases because there are less of them.
@@ -206,13 +208,13 @@ class TestBox:
 
     def compress_overlapping_bubbles(self, bubbles):
         """
-        Finds Bubbles that are overlapping and uses the bigger one.
+        Finds Bubbles that are overlapping and uses the biggest one.
 
         Args:
             bubbles (list): A list of bubble contours.
         
         Returns:
-            clean_bubbles (list): A list of bubble contours.
+            biggest_bubble: The biggest bubble contour.
         """ 
         if len(bubbles) == 1:
             return bubbles[0]
@@ -229,7 +231,7 @@ class TestBox:
 
     def get_expected_bubble_locations(self, box_extremes, group_extremes):
         """
-        Uses the corner points to "draw a grid" to figure out where there should be bubbles
+        Uses the extreme points to "draw a grid" to figure out where there should be bubbles
         box_extremes is a list of two things: [xs], [ys]
         group_extremes is a list of box_extremes (one per group)
         """
@@ -262,13 +264,22 @@ class TestBox:
         """
         Loops through all the bubbles and returns any that overlap with location.
         """
-        overlapping_bubbles = []        
-        for group in bubbles:
-            for bubble in group:
+        bubble_indices = []        
+        for i, group in enumerate(bubbles):
+            for j, bubble in enumerate(group):
                 if self.contours_overlap(bubble, location):
-                    overlapping_bubbles.append(bubble)
-        return overlapping_bubbles
+                    bubble_index = [i, j]
+                    bubble_indices.append(bubble_index)
+        return bubble_indices
 
+    def all_contours_overlap(self, contour_list):
+        for i, contour in enumerate(contour_list):
+            for contour_2 in contour_list[i+1:]:
+                if not self.contours_overlap(contour, contour_2):
+                    return False
+        return True
+
+        
     def bubble_cleanup(self, bubbles, box_extremes, group_extremes, box):
         """
         Creates a "grid" of where the bubbles should be located based on the coordinates 
@@ -297,13 +308,23 @@ class TestBox:
                 qnum = int(i/self.bubbles_per_q) + offset
                 if qnum >= self.num_questions:
                     break
-                overlapping_bubbles = self.get_overlapping_bubbles(bubbles, location)
+
+                bubble_to_append = None
+                index_to_append = 0
+                overlapping_indices = self.get_overlapping_bubbles(bubbles, location)
+                overlapping_bubbles = [bubbles[oi[0]][oi[1]] for oi in overlapping_indices]
                 if len(overlapping_bubbles) == 0 and len(clean_bubbles[group_num]) < self.num_questions:
-                    clean_bubbles[group_num].append(self.rescue_expected_bubbles(model_bubble, location))
+                    bubble_to_append = self.rescue_expected_bubbles(model_bubble, location)
                 elif len(overlapping_bubbles) == 1:
-                    clean_bubbles[group_num].append(overlapping_bubbles[0])
-                elif len(overlapping_bubbles) > 1:
-                    clean_bubbles[group_num].append(self.compress_overlapping_bubbles(overlapping_bubbles))
+                    bubble_to_append = overlapping_bubbles[0]
+                elif len(overlapping_bubbles) > 1 and self.all_contours_overlap(overlapping_bubbles):
+                    bubble_to_append, index_to_append = self.compress_overlapping_bubbles(overlapping_bubbles)
+                else:
+                    print(f"All the bubbles in this location ({location}) didn't overlap each other. Not putting a bubble for this location.")
+                
+                if bubble_to_append is not None:
+                    clean_bubbles[group_num].append(bubble_to_append)
+                    bubbles[group_num][index_to_append] = None                 
         return clean_bubbles
 
     def get_bubbles(self, box):
