@@ -15,6 +15,9 @@ class BoxNotFoundError(Error):
     def __init__(self, message):
         self.message = message
 
+#TODO test_act_page_1: Failed because test 4 found the locations even though the threshold confused the answers.
+#TODO test_act_page_1a: Failed because I'm not really sure.... quetion 72 got nothing when its supposed to be 'B'
+#TODO test_act_page-1b: Falied because we couldn't detect the line above test 1.
 class TestBox:
 
     def __init__(self, page, config, verbose_mode, debug_mode, scale, test, threshold_constant):
@@ -186,9 +189,9 @@ class TestBox:
             h > self.bubble_height * 1.2 or
             aspect_ratio < min_aspect_ratio or
             aspect_ratio > max_aspect_ratio):
-            if self.debug_mode:
-                if aspect_ratio > min_aspect_ratio and aspect_ratio < max_aspect_ratio and w > 15:
-                    print(f"not considered a bubble because width is {w:.2f} not between, {(self.bubble_width * 0.8):.2f}, {(self.bubble_width * 2.0):.2f}, or height is {h:.2f} not between, {(self.bubble_height * 0.8):.2f}, {(self.bubble_height * 2.0):.2f}, or aspect ratio is {aspect_ratio:.2f} not between {min_aspect_ratio}, {max_aspect_ratio}")
+            # if self.debug_mode:
+            #     if aspect_ratio > min_aspect_ratio and aspect_ratio < max_aspect_ratio and w > 15:
+            #         print(f"not considered a bubble because width is {w:.2f} not between, {(self.bubble_width * 0.8):.2f}, {(self.bubble_width * 2.0):.2f}, or height is {h:.2f} not between, {(self.bubble_height * 0.8):.2f}, {(self.bubble_height * 2.0):.2f}, or aspect ratio is {aspect_ratio:.2f} not between {min_aspect_ratio}, {max_aspect_ratio}")
             return False
 
         return True
@@ -369,19 +372,30 @@ class TestBox:
             else:
                 nonbubbles.append(contour)
 
+
+
         clean_bubbles = self.bubble_cleanup(bubbles, box_extremes, group_extremes, box)
 
         if self.debug_mode:
-            #show the detected bubbles in yellow.
             colorbox = cv.cvtColor(box, cv.COLOR_GRAY2BGR)
+            # for contour in sorted(contours, key = lambda a: cv.boundingRect(a)[1]):
+            #     area = cv.contourArea(contour)
+            #     if area < 20:
+            #         continue
+            #     colorbox_copy = colorbox
+            #     cv.drawContours(colorbox_copy, [contour], -1, (0,0,255), 3)
+            #     cv.imshow('', colorbox_copy)
+            #     cv.waitKey() 
+            #show the detected bubbles in yellow.
             for group in clean_bubbles:
-                cv.drawContours(colorbox, group, -1, (0,255,255), 3)
+                cv.drawContours(colorbox, group, -1, (0,255,255), 5)
             cv.imshow('', colorbox)
             cv.waitKey()
+            #show all bubbles in purple
             cv.drawContours(colorbox, allbubbles, -1, (255,0,140), 3)
             cv.imshow('', colorbox)
             cv.waitKey()
-
+            #show the detected contours in green.
 
         return clean_bubbles, nonbubbles
 
@@ -393,6 +407,7 @@ class TestBox:
         areas_to_erase = [np.array(([0, 0], [im_width, 0], [im_width, im_height], [0, im_height]))]
         cv.drawContours(im, areas_to_erase, -1, 0, 10)
         return im
+
     def box_contains_bubbles(self, box, threshold):
         (x, y, w, h) = cv.boundingRect(box)
         bubbles = []
@@ -448,8 +463,8 @@ class TestBox:
             w > .5 * page_width and
             w*h <= .95 * page_height * page_width and
             self.box_contains_bubbles(contour, page)):
-            if self.debug_mode:
-                print(f'{w}:{h} {w/h}')
+            #if self.debug_mode:
+                #print(f'Width: {w} Height:{h} Aspect Ratio:{w/h}')
             return True
         else:
             return False
@@ -900,9 +915,9 @@ class TestBox:
         return shrunken_bubbles
 
 
-    def grade_bubbles(self, bubbles, nonbubbles, box, graybox):
+    def get_bubble_vals(self, bubbles, nonbubbles, box, graybox):
         """
-        Grades a list of bubbles from the test box.
+        Populates a dict with the pixel intensities of each bubble
 
         Args:
             bubbles (list): A list of lists, where each list is a group of 
@@ -974,7 +989,7 @@ class TestBox:
         return top_dif/(total/(len(question_vals)-2))
              
 
-    def refine_answers(self, bubble_vals, bubbled):
+    def grade_bubbles(self, bubble_vals, bubbled):
         # Goes through all bubbles and decides whether they're closer to the 
         # median filled or the median unfilled and updates bubbled accordingly
         num_questions = len(bubble_vals.keys())
