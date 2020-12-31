@@ -88,7 +88,7 @@ class Grader:
             and find the one with the largest y position (closest to the bottom) 
             that is at least 80% of the first 6 minimum line we calculated before
             """
-            line_contours = self.get_line_contours(contours[:20], imgray)
+            line_contours = self.get_line_contours(contours[:20], imgray, 6, 6)
             
             
             b1x, b1y, b2x, b2y = self.get_first_and_last_points(line_contours[0], 'x')
@@ -176,8 +176,12 @@ class Grader:
         contours, _ = cv.findContours(threshold, cv.RETR_EXTERNAL, 
             cv.CHAIN_APPROX_SIMPLE)
         contours = self.sort_contours_by_width(contours)
-        line_contours = sorted(self.get_line_contours(contours[:20], image), key=lambda y: self.get_line_contour_y(y), reverse=False)
-
+        line_contours = sorted(self.get_line_contours(contours[:20], image, 5, 6), key=lambda y: self.get_line_contour_y(y), reverse=False)
+        
+        # colorim = cv.cvtColor(image, cv.COLOR_GRAY2BGR)
+        # cv.drawContours(colorim,line_contours, -1, (133,255,255), 3)
+        # cv.imshow('', colorim)
+        # cv.waitKey()
             
         ty = self.get_line_contour_y(line_contours[0])
         by = self.get_line_contour_y(line_contours[-1])
@@ -205,34 +209,31 @@ class Grader:
 
     def get_contour_properties(self, contour):
         x, y, w, h = cv.boundingRect(contour)
-        first_point = None
-        last_point = None
-        for point in contour:
-            point_list = [point[0][0], point[0][1]]
-            if point_list == [x, y]:
-                first_point = [x, y]
-                last_point = [x+w, y+h]
-                slope = (h/w)*-1
-                break
+        xs = [p[0][0] for p in contour]
+        ys = [p[0][1] for p in contour]
+        m,b = np.polyfit(xs,ys,1)
+        sorted_contour = sorted(contour, key=lambda p: p[0][0], reverse = False)
+        first_point = sorted_contour[0][0]
+        last_point = sorted_contour[-1][0]
+        if y - first_point[1] < h/2:
+            slope = (h/w)*-1
         # we didn't find one in the upper left, so first_point is lower left
-        if first_point is None:
-            first_point = [x, y]
-            last_point = [x+w, y-h]
+        else:
             slope = h/w
         
         return {
                 'first_point': first_point, 
                 'last_point': last_point,
-                'slope': slope,
+                'slope': m,
+                'intercept': b,
                 'width': w,
                 'height': h,
                 'contour': contour
                }
 
-    def get_line_contours(self, contours, imgray):
-        #sorts contours by y position
+    def get_line_contours(self, contours, imgray, min_cnum, max_cnum):
         line_contours = []
-        if len(contours) < 6:
+        if len(contours) < min_cnum:
             raise Exception('We could not find the detailed features in your image. Please send an image that has a high enough resolution')
         contour_properties = []
         # We are looping through the contours that are sorted by y position. 
@@ -244,24 +245,36 @@ class Grader:
             slope = properties['slope']
             first_point = properties['first_point']
             for point in properties['contour']:
-                point_x = point[0][0] - first_point[0]
-                point_y = point[0][1] - first_point[1]
-                pred_y = slope * point_x
+                point_x = point[0][0]
+                point_y = point[0][1]
+                pred_y = slope * point_x + properties['intercept']
                 deviations.append(np.abs(point_y-pred_y))
             
-            
             average_deviation = np.average(deviations)
+            median_deviation = np.median(deviations)
             #print(average_deviation)
             properties['average_deviation'] = average_deviation
+            properties['median_deviation'] = median_deviation
+            properties['deviations'] = deviations
+            properties['height'] = median_deviation*2
+                
+        # colorim = cv.cvtColor(imgray, cv.COLOR_GRAY2BGR)
+        # cv.drawContours(colorim,[cp['contour'] for cp in contour_properties], -1, (133,255,255), 3)
+        # cv.imshow('', colorim)
+        # cv.waitKey()
+
 
         # We have to do some filtering first so that we don't do merge_lines on every single contour
         plausable_line_properties = []
         for cp in contour_properties:
+            # this might be able to change because of the new np.fit
             if cp['average_deviation'] < 50:
                 plausable_line_properties.append(cp)
 
         # take two lines close together condense them into one
-        plausable_line_properties = self.merge_lines(plausable_line_properties)
+        #TODO Make this more leniant to line length and line x position
+        line_widths = []
+        plausable_line_properties = self.merge_lines(plausable_line_properties, imgray)
         longest_line_properties = sorted(plausable_line_properties, key=lambda cp: cp['width'], reverse = True)[:6]
         min_line_length = np.median([cp['width'] for cp in longest_line_properties])*0.85
         max_line_length = np.median([cp['width'] for cp in longest_line_properties])*1.5
@@ -270,17 +283,17 @@ class Grader:
         for cp in plausable_line_properties:
             c = cp['contour']
             w = cp['width']
-            if cv.boundingRect(c)[3] < median_height*2 and \
+            if cp['height'] < median_height*4 and \
                w >= min_line_length and w <= max_line_length:
                 line_contours.append(c)
+                line_widths.append(w)
                 
 
-        if len(line_contours) < 6:
+        if len(line_contours) < min_cnum or len(line_contours) > max_cnum:
             #find contours with similar slopes and merge them
-            raise Exception("We couldn't find enough lines between the test sections to indentify where the bubbles are.")
-        if len(line_contours) > 6:
-            # take two lines close together  condense them into one
-            raise Exception("We found too many lines between the test sections.")            
+            raise Exception(f"We couldn't find the right amount lines between the test sections to indentify where the bubbles are. We found these widths {line_widths}")
+        
+
         return sorted(line_contours, key=lambda a: self.get_line_contour_y(a), reverse = False)
 
     def image_is_upright(self, page, config):
