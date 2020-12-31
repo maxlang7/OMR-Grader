@@ -459,6 +459,11 @@ class Grader:
             data['status'] = 1
             data['error'] = f'Image {image_name} not found'
             return self.format_error(data)
+        im_w, im_h, _ = im.shape
+        if im_w < 1000 or im_h < 1000:
+            data['status'] = 2
+            data['error'] = f'Your image is not high enough resolution for us to identify bubbles. Please send an image that contains at least 1000 x 1000 pixels.'
+            return self.format_error(data)
 
         config_error = self.initialize_config(test, page_number)
         if config_error is not None:
