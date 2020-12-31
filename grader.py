@@ -476,7 +476,7 @@ class Grader:
         # Find largest box within image.
         threshold_constant = 0
         if test == 'act':
-            threshold_list = [25, 50, 75]
+            threshold_list = [15, 25, 35, 50, 75]
         if test == 'sat':
             threshold_list = [25, 35, 50]
         for threshold_constant in threshold_list:
@@ -484,9 +484,8 @@ class Grader:
             try:
                 page = self.find_page(im, test, debug_mode, threshold_constant)
             except Exception as e:
-                data['status'] = 2
-                data['error'] = str(e)
-                return self.format_error(data)
+                print(f"{str(e)} on threshold {threshold_constant}.")
+                continue
             if page is not None:
                 # Scale config values based on page size.
                 self.scale_config(config, page.shape[1], page.shape[0])
@@ -500,7 +499,8 @@ class Grader:
                 # Grade each test box and add result to data.
                 data['boxes'] = []
                 for box_num, box_config in enumerate(config['boxes']):  
-                    #For debugging purposes: if box_num != 3: continue
+                    #For debugging purposes: 
+                    if box_num != 3: continue
                     box_config['x_error'] = config['x_error']
                     box_config['y_error'] = config['y_error']
                     box_config['bubble_width'] = config['bubble_width']
