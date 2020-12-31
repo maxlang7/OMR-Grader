@@ -698,8 +698,9 @@ class TestBox:
 
         """
         # Sum up all of the pixel values (0 to 255) inside a bubble 
+        
         zero_box = np.zeros_like(box)
-        cv.drawContours(zero_box, [bubble], -1, 255, thickness=-1)
+        cv.ellipse(zero_box, bubble, 255, -1)
         #Could be useful to visualize this function|
         #                                          V
                                                 #if self.debug_mode:
@@ -862,19 +863,16 @@ class TestBox:
         """
         shrunken_bubbles = []
         for bubble in clean_question:
-            scale = .6
-            M = cv.moments(bubble)
-            cx = int(M['m10']/M['m00'])
-            cy = int(M['m01']/M['m00'])
-            centerbubble = bubble - [cx, cy]
-            scaledbubble = centerbubble * scale
-            scaledbubble = (scaledbubble + [cx, cy]).astype(np.int32)
+            scale = 0.6
+            centerbubble = cv.fitEllipse(bubble)
+            scaledbubble = (centerbubble[0],(centerbubble[1][0]*scale, centerbubble[1][1]*scale),centerbubble[2])
             shrunken_bubbles.append(scaledbubble)
 
         if self.debug_mode:
             #show the detected bubbles in green.
             colorbox = cv.cvtColor(box, cv.COLOR_GRAY2BGR)
-            cv.drawContours(colorbox, shrunken_bubbles, -1, (0,255,0), -1)
+            for shrunken_bubble in shrunken_bubbles:
+                cv.ellipse(colorbox, shrunken_bubble, (0,255,0), -1)
             cv.imshow('', colorbox)
             cv.waitKey()
             
