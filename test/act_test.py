@@ -7,7 +7,7 @@ from wand.image import Image
 
 class ExampleActTests(unittest.TestCase):
     #turn both to true to see images.
-    verbose_mode = False
+    verbose_mode = True
     debug_mode = verbose_mode
 
     def test_act_page1(self):
@@ -43,7 +43,8 @@ class ExampleActTests(unittest.TestCase):
                               'C F B G D J A ' +
                               'H B F D J').split(' ')
                             ]
-        self.assertEqual(data['status'], 0)        
+        self.assertIn('boxes', data, f"We couldn't find any boxes because we enountered this error: {data['error']}")
+        self.assertGreater(len(data['boxes']), 0, f"We couldn't find any boxes because we enountered this error: {data['error']}")
         for i, graded_results in enumerate(data['boxes']):
             print(f'ACT test {i+1}')
             self.assertEqual(len(graded_results['results']['bubbled']),len(expected_answers[i]))        
@@ -82,7 +83,8 @@ class ExampleActTests(unittest.TestCase):
                               'C F B G D G B ' +
                               'G C H B H').split(' ')
                           ]
-                        
+        self.assertIn('boxes', data, f"We couldn't find any boxes because we enountered this error: {data['error']}")
+        self.assertGreater(len(data['boxes']), 0, f"We couldn't find any boxes because we enountered this error: {data['error']}")                   
         for i, graded_results in enumerate(data['boxes']):
             print(f'ACT test {i+1}')
             self.assertEqual(len(graded_results['results']['bubbled']),len(expected_answers[i]))        
@@ -120,7 +122,8 @@ class ExampleActTests(unittest.TestCase):
                               'D F B G D J A ' +
                               'H C G A J').split(' ')
                           ]
-                        
+        self.assertIn('boxes', data, f"We couldn't find any boxes because we enountered this error: {data['error']}")
+        self.assertGreater(len(data['boxes']), 0, f"We couldn't find any boxes because we enountered this error: {data['error']}")                   
         for i, graded_results in enumerate(data['boxes']):
             print(f'ACT test {i+1}')
             self.assertEqual(len(graded_results['results']['bubbled']),len(expected_answers[i]))        
@@ -130,6 +133,7 @@ class ExampleActTests(unittest.TestCase):
         grader = g.Grader()
         jsonData = grader.grade('test/images/act_test1c.png', self.debug_mode, self.verbose_mode, 1.0, 'act', 1)
         data = json.loads(jsonData)
+
         expected_answers = [ ('A J D H B J B J C J B G A ' +
                               'H D H B J C H C F B H A F ' +
                               'D G A F B H B H A F A F C ' +
@@ -158,7 +162,8 @@ class ExampleActTests(unittest.TestCase):
                               'C F B G D H A ' +
                               'H B H D J').split(' ')
                           ]
-                        
+        self.assertIn('boxes', data, f"We couldn't find any boxes because we enountered this error: {data['error']}")
+        self.assertGreater(len(data['boxes']), 0, f"We couldn't find any boxes because we enountered this error: {data['error']}")                  
         for i, graded_results in enumerate(data['boxes']):
             print(f'ACT test {i+1}')
             self.assertEqual(len(graded_results['results']['bubbled']),len(expected_answers[i]))        
@@ -166,14 +171,14 @@ class ExampleActTests(unittest.TestCase):
             
     def test_act_simple(self):
         answer_counts = [75, 60, 40, 40]
-        for testsuffix in ['d', 'e', 'f', 'g']:
+        for testsuffix in ['d', 'f', 'g']:
             print(f'act test 1{testsuffix}')
             grader = g.Grader()
             jsonData = grader.grade(f'test/images/act_test1{testsuffix}.jpg', self.debug_mode, self.verbose_mode, 1.0, 'act', 1)
             data = json.loads(jsonData)
 
             self.assertIn('boxes', data, f"We couldn't find any boxes because we enountered this error: {data['error']}")
-            self.assertGreater(len(data['boxes']), 0)
+            self.assertGreater(len(data['boxes']), 0, f"We couldn't find any boxes because we enountered this error: {data['error']}")
 
             for i, graded_results in enumerate(data['boxes']):
                 print(f'ACT test 1{testsuffix} box {i+1}')
