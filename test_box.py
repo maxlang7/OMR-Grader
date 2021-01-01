@@ -346,6 +346,9 @@ class TestBox:
         contours, _ = cv.findContours(box, cv.RETR_TREE, 
             cv.CHAIN_APPROX_SIMPLE)
     
+        #used for imshows later
+        colorbox = cv.cvtColor(box, cv.COLOR_GRAY2BGR)
+
         # Init empty list for each group of bubbles.
         allbubbles = []
         nonbubbles = []
@@ -359,10 +362,10 @@ class TestBox:
         # Check if contour is bubble; if it is, add to its appropriate group.
         for contour in contours:
             if self.is_bubble(contour):
+                allbubbles.append(contour)            
                 group_num = self.get_bubble_group(contour)
                 if group_num is not None: 
                     bubbles[group_num].append(contour)
-                    allbubbles.append(contour)                
                     contour_y = np.mean([p[0][1] for p in contour])
                     contour_x = np.mean([p[0][0] for p in contour])
                     box_extremes[0].append(contour_x)
@@ -377,7 +380,6 @@ class TestBox:
         clean_bubbles = self.bubble_cleanup(bubbles, box_extremes, group_extremes, box)
 
         if self.debug_mode:
-            colorbox = cv.cvtColor(box, cv.COLOR_GRAY2BGR)
             # for contour in sorted(contours, key = lambda a: cv.boundingRect(a)[1]):
             #     area = cv.contourArea(contour)
             #     if area < 20:
@@ -386,17 +388,21 @@ class TestBox:
             #     cv.drawContours(colorbox_copy, [contour], -1, (0,0,255), 3)
             #     cv.imshow('', colorbox_copy)
             #     cv.waitKey() 
-            #show the detected bubbles in yellow.
-            for group in clean_bubbles:
-                cv.drawContours(colorbox, group, -1, (0,255,255), 5)
-            cv.imshow('', colorbox)
-            cv.waitKey()
             #show all bubbles in purple
-            cv.drawContours(colorbox, allbubbles, -1, (255,0,140), 3)
+            cv.drawContours(colorbox, allbubbles, -1, (255,0,140), 5)
             cv.imshow('', colorbox)
             cv.waitKey()
-            #show the detected contours in green.
+            #show the clean bubbles in yellow.
 
+            for group in clean_bubbles:
+                cv.drawContours(colorbox, group, -1, (0,255,255), 3)
+            cv.imshow('', colorbox)
+            cv.waitKey()
+            
+            #show the detected contours in green.
+            cv.drawContours(colorbox, contours, -1, (0,255,0), 1)
+            cv.imshow('', colorbox)
+            cv.waitKey()
         return clean_bubbles, nonbubbles
 
     def mask_edges(self, im):
