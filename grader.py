@@ -182,11 +182,12 @@ class Grader:
         # cv.drawContours(colorim,line_contours, -1, (133,255,255), 3)
         # cv.imshow('', colorim)
         # cv.waitKey()
-            
+        # we add one because we don't grade the first box
+        num_expected_boxes = len(self.config['boxes']) + 1    
         ty = self.get_line_contour_y(line_contours[0])
         by = self.get_line_contour_y(line_contours[-1])
         page_y_dif = by - ty 
-        min_box_height = page_y_dif/(len(self.config['boxes'])+1)/2
+        min_box_height = page_y_dif/(num_expected_boxes/2)
         prev_contour = line_contours[0]
         boxes_to_draw = []
         areas_to_erase = []
@@ -202,6 +203,8 @@ class Grader:
                 boxes_to_draw.append(np.array(([x,ty+5],[w,ty+5],[w,by-5], [x,by-5]), dtype=np.int32))
                 areas_to_erase.append(np.array(([x,ty-erase_height],[w,ty-erase_height],[w,ty+erase_height], [x,ty+erase_height]), dtype=np.int32))
             prev_contour = c
+        if len(boxes_to_draw) < num_expected_boxes:
+            return None
         #need to erase at the very end of the page too
         areas_to_erase.append(np.array(([x,by-erase_height],[w,by-erase_height],[w,by+erase_height], [x,by+erase_height]), dtype=np.int32))
         cv.drawContours(image, areas_to_erase, -1, 255, -1) 
