@@ -20,42 +20,43 @@
             "rows": 13,
             "columns": 4,
             "num_questions": 75,
+            "expected_fraction_of_unfilled_bubbles": 0.75, 
             "groups": [
                 {
-                    "x_min": 95.0,
-                    "x_max": 190.0,
-                    "y_min": 57.0,
-                    "y_max": 355.0
+                    "x_min": 85.0,
+                    "x_max": 200.0,
+                    "y_min": 50.0,
+                    "y_max": 375.0
                 },
                 {
-                    "x_min": 290.0,
-                    "x_max": 395.0,
-                    "y_min": 57.0,
-                    "y_max": 355.0
+                    "x_min": 285.0,
+                    "x_max": 390.0,
+                    "y_min": 50.0,
+                    "y_max": 375.0
                 },
                 {
                     "x_min": 485.0,
                     "x_max": 595.0,
-                    "y_min": 57.0,
-                    "y_max": 355.0
+                    "y_min": 50.0,
+                    "y_max": 375.0
                 },
                 {
-                    "x_min": 685.0,
-                    "x_max": 795.0,
-                    "y_min": 57.0,
-                    "y_max": 355.0
+                    "x_min": 675.0,
+                    "x_max": 785.0,
+                    "y_min": 50.0,
+                    "y_max": 375.0
                 },
                 {
-                    "x_min": 880.0,
-                    "x_max": 990.0,
-                    "y_min": 57.0,
-                    "y_max": 355.0
+                    "x_min": 875.0,
+                    "x_max": 980.0,
+                    "y_min": 50.0,
+                    "y_max": 375.0
                 },
                 {
-                    "x_min": 1075.0,
+                    "x_min": 1070.0,
                     "x_max": 1180.0,
-                    "y_min": 57.0,
-                    "y_max": 355.0
+                    "y_min": 50.0,
+                    "y_max": 375.0
                 }
             ]
         },
@@ -71,42 +72,43 @@
             "rows": 10,
             "columns": 5, 
             "num_questions": 60,
+            "expected_fraction_of_unfilled_bubbles": 0.8, 
             "groups": [
                 {
                     "x_min": 95.0,
                     "x_max": 220.0,
                     "y_min": 50.0,
-                    "y_max": 270.0
+                    "y_max": 280.0
                 },
                 {
                     "x_min": 290.0, 
                     "x_max": 420.0,
                     "y_min": 50.0,
-                    "y_max": 270.0       
+                    "y_max": 280.0       
                 },
                 {
                     "x_min": 480.0,
-                    "x_max": 620.0,
+                    "x_max": 610.0,
                     "y_min": 50.0,
-                    "y_max": 273.0                    
+                    "y_max": 280.0                    
                 },
                 {
                     "x_min": 680.0,
-                    "x_max": 810.0,
+                    "x_max": 800.0,
                     "y_min": 50.0,
-                    "y_max": 273.0                    
+                    "y_max": 280.0                    
                 },
                 {
-                    "x_min": 880.0,
-                    "x_max": 1000.0,
+                    "x_min": 870.0,
+                    "x_max": 990.0,
                     "y_min": 50.0,
-                    "y_max": 273.0                    
+                    "y_max": 280.0                    
                 },
                 {
                     "x_min": 1075.0,
                     "x_max": 1240.0,
                     "y_min": 50.0,
-                    "y_max": 273.0 
+                    "y_max": 280.0 
                 }
             ]
         },        
@@ -122,34 +124,35 @@
             "rows": 7,
             "columns": 4, 
             "num_questions": 40,
+            "expected_fraction_of_unfilled_bubbles": 0.75, 
             "groups": [
                 {
                     "x_min": 95.0,
-                    "x_max": 190.0,
+                    "x_max": 195.0,
                     "y_min": 50.0,
                     "y_max": 205.0
                 },
                 {
                     "x_min": 290.0, 
-                    "x_max": 390.0,
+                    "x_max": 395.0,
                     "y_min": 50.0,
                     "y_max": 205.0       
                 },
                 {
                     "x_min": 485.0,
-                    "x_max": 610.0,
+                    "x_max": 615.0,
                     "y_min": 50.0,
                     "y_max": 205.0                    
                 },
                 {
                     "x_min": 680.0,
-                    "x_max": 780.0,
+                    "x_max": 785.0,
                     "y_min": 50.0,
                     "y_max": 205.0                    
                 },
                 {
                     "x_min": 880.0,
-                    "x_max": 970.0,
+                    "x_max": 975.0,
                     "y_min": 50.0,
                     "y_max": 205.0                    
                 },
@@ -173,42 +176,43 @@
             "rows": 7,
             "columns": 4, 
             "num_questions": 40,
+            "expected_fraction_of_unfilled_bubbles": 0.75,
             "groups": [
                 {
                     "x_min": 95.0,
                     "x_max": 190.0,
                     "y_min": 50.0,
-                    "y_max": 205.0
+                    "y_max": 220.0
                 },
                 {
                     "x_min": 290.0, 
                     "x_max": 390.0,
                     "y_min": 50.0,
-                    "y_max": 205.0       
+                    "y_max": 220.0       
                 },
                 {
                     "x_min": 480.0,
-                    "x_max": 610.0,
+                    "x_max": 590.0,
                     "y_min": 50.0,
-                    "y_max": 205.0                    
+                    "y_max": 220.0                    
                 },
                 {
                     "x_min": 680.0,
                     "x_max": 780.0,
                     "y_min": 50.0,
-                    "y_max": 205.0                    
+                    "y_max": 220.0                    
                 },
                 {
                     "x_min": 880.0,
-                    "x_max": 970.0,
+                    "x_max": 975.0,
                     "y_min": 50.0,
-                    "y_max": 205.0                    
+                    "y_max": 220.0                    
                 },
                 {
                     "x_min": 1075.0,
-                    "x_max": 1210.0,
+                    "x_max": 1180.0,
                     "y_min": 50.0,
-                    "y_max": 205.0 
+                    "y_max": 220.0 
                 }
             ]
         }

@@ -19,7 +19,8 @@
             "y": 10.0,
             "rows": 9,
             "columns": 4, 
-            "num_questions": 44, 
+            "num_questions": 44,
+            "expected_fraction_of_unfilled_bubbles": 0.75,  
             "groups": [
                 {
                     "x_min": 100.0, 

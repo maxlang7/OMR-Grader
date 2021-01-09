@@ -20,6 +20,7 @@
             "rows": 12,
             "columns": 4,
             "num_questions": 20,
+            "expected_fraction_of_unfilled_bubbles": 0.97, 
             "groups": [
                 {
                     "x_min": 90.0, 
@@ -66,6 +67,7 @@
             "rows": 12,
             "columns": 4,
             "num_questions": 12,
+            "expected_fraction_of_unfilled_bubbles": 0.97, 
             "groups": [
                 {
                     "x_min": 90.0, 

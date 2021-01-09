@@ -5,7 +5,7 @@ class Parser:
 
     box_keys = ['name', 'type', 'orientation', 'multiple_responses', 'num_q_per_super_question', 
             'starting_question_num', 'x', 'y',
-        'rows', 'columns', 'num_questions', 'groups']
+        'rows', 'columns', 'num_questions', 'expected_fraction_of_unfilled_bubbles', 'groups']
 
     group_keys = ['x_min', 'x_max', 'y_min', 'y_max']
 
@@ -282,7 +282,7 @@ class Parser:
         """
         if key == 'name' or key == 'type' or key == 'orientation':
             self.parse_string(key, value)
-        elif key == 'x' or key == 'y':
+        elif key == 'x' or key == 'y' or key == 'expected_fraction_of_unfilled_bubbles':
             self.parse_float(key, value)
         elif key in ['rows', 'columns', 'num_questions', 'num_q_per_super_question', 'starting_question_num']:
             self.parse_int(key, value)
