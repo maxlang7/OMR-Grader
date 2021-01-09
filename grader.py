@@ -25,9 +25,9 @@ class Grader:
     
     def get_first_and_last_points(self, contour, xy):
         #Gets the first and last points of the contour it is passed (element decides whether it sorts by x or y)
-        min_x = [3000000000, 0]
+        min_x = [np.inf, 0]
         max_x = [-1, 0]
-        min_y = [0, 3000000000]
+        min_y = [0, np.inf]
         max_y = [0, -1]
         
         for point in contour:
@@ -115,7 +115,7 @@ class Grader:
 
         else:
             #TODO when we add more tests, extend these errors and if block
-            raise f'We currently only support sat and act (lowercase) not {test}'
+            raise Exception(f'We currently only support sat and act (lowercase) not {test}')
 
         
         if page is None:
@@ -190,8 +190,8 @@ class Grader:
         prev_contour = line_contours[0]
         boxes_to_draw = []
         areas_to_erase = []
-        x = 0
-        w = image.shape[0]
+        x = 1
+        w = image.shape[1] -1
         for c in line_contours:
             # calculating height by finding difference beween y values.
             current_box_height = self.get_line_contour_y(c) - self.get_line_contour_y(prev_contour)
@@ -199,12 +199,14 @@ class Grader:
             if current_box_height > min_box_height:
                 ty = self.get_line_contour_y(prev_contour)
                 by = self.get_line_contour_y(c)
-                boxes_to_draw.append(np.array(([x,ty],[x+w,ty],[x+w,by-5], [x,by-5]), dtype=np.int32))
-                areas_to_erase.append(np.array(([x,ty-erase_height],[x+w,ty-erase_height],[x+w,ty+erase_height], [x,ty+erase_height]), dtype=np.int32))
+                boxes_to_draw.append(np.array(([x,ty+5],[w,ty+5],[w,by-5], [x,by-5]), dtype=np.int32))
+                areas_to_erase.append(np.array(([x,ty-erase_height],[w,ty-erase_height],[w,ty+erase_height], [x,ty+erase_height]), dtype=np.int32))
             prev_contour = c
-        
-        cv.drawContours(image, areas_to_erase, -1, 255, -1)   
-        cv.drawContours(image, boxes_to_draw[1:], -1, 0, 2)
+        #need to erase at the very end of the page too
+        areas_to_erase.append(np.array(([x,by-erase_height],[w,by-erase_height],[w,by+erase_height], [x,by+erase_height]), dtype=np.int32))
+        cv.drawContours(image, areas_to_erase, -1, 255, -1) 
+        #the first box contains student info, no answers  
+        cv.drawContours(image, boxes_to_draw[1:], -1, 0, 1)
         return image
 
     def get_contour_properties(self, contour):
@@ -271,8 +273,6 @@ class Grader:
             if cp['average_deviation'] < 50:
                 plausable_line_properties.append(cp)
 
-        # take two lines close together condense them into one
-        #TODO Make this more leniant to line length and line x position
         line_widths = []
         plausable_line_properties = self.merge_lines(plausable_line_properties, imgray)
         longest_line_properties = sorted(plausable_line_properties, key=lambda cp: cp['width'], reverse = True)[:6]
@@ -415,7 +415,8 @@ class Grader:
         """
         data = {
             'status' : 0,
-            'error' : ''
+            'error' : '',
+            'boxes' : []
         }
         return data
 
@@ -465,14 +466,6 @@ class Grader:
             data['error'] = f'Your image is not high enough resolution for us to identify bubbles. Please send an image that contains at least 1000 x 1000 pixels.'
             return self.format_error(data)
 
-        config_error = self.initialize_config(test, page_number)
-        if config_error is not None:
-            data['status'] = 1
-            data['error'] = config_error
-            return self.format_error(data)
-        else:
-            config = self.config
-
         # Find largest box within image.
         threshold_constant = 0
         if test == 'act':
@@ -482,9 +475,16 @@ class Grader:
         for threshold_constant in threshold_list:
             data = self.initialize_return_data()
             try:
+                config_error = self.initialize_config(test, page_number)
+                if config_error is not None:
+                    data['status'] = 1
+                    data['error'] = config_error
+                    return self.format_error(data)
+                else:
+                    config = self.config
                 page = self.find_page(im, test, debug_mode, threshold_constant)
             except Exception as e:
-                print(f"{str(e)} on threshold {threshold_constant}.")
+                print(f"Unable to find page: {str(e)} at threshold {threshold_constant}.")
                 continue
             if page is not None:
                 # Scale config values based on page size.
@@ -497,10 +497,8 @@ class Grader:
                     return self.format_error(data)
 
                 # Grade each test box and add result to data.
-                data['boxes'] = []
                 for box_num, box_config in enumerate(config['boxes']):  
-                    #For debugging purposes: 
-                    if box_num != 3: continue
+                    #For debugging purposes: if box_num != 0: continue
                     box_config['x_error'] = config['x_error']
                     box_config['y_error'] = config['y_error']
                     box_config['bubble_width'] = config['bubble_width']
@@ -520,7 +518,6 @@ class Grader:
                         successful_boxes+=1
                 if successful_boxes == len(config['boxes']):
                     break
-    
 
         if page is None:    
             data['status'] = 2

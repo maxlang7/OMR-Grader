@@ -19,7 +19,6 @@ class BoxNotFoundError(Error):
 #TODO test_act_page_1a: Failed because I'm not really sure.... quetion 72 got nothing when its supposed to be 'B'
 #TODO test_act_page-1b: Falied because we couldn't detect the line above test 1.
 class TestBox:
-
     def __init__(self, page, config, verbose_mode, debug_mode, scale, test, threshold_constant):
         """
         Constructor for a new test box.
@@ -65,6 +64,7 @@ class TestBox:
         self.min_bubbles_per_box = config['min_bubbles_per_box']
         self.box_to_grade = config['box_to_grade']
         self.num_questions = config['num_questions']
+        self.expected_fraction_of_unfilled_bubbles = config['expected_fraction_of_unfilled_bubbles']
         # Set number of bubbles per question based on box orientation.
         if self.orientation == 'left-to-right':
             self.bubbles_per_q = self.columns
@@ -93,10 +93,13 @@ class TestBox:
                 to a group.
 
         """
-        (x, y, _w, _h) = cv.boundingRect(bubble)
-
-        # Add offsets to get coordinates in relation to the whole test image 
-        # instead of in relation to the test box.
+        #x, y, _w, _h = cv.boundingRect(bubble)
+        ellipse_bubble = cv.fitEllipse(bubble)
+        #Add offsets to get coordinates in relation to the whole test image 
+        #instead of in relation to the test box.
+        x = ellipse_bubble[0][0]
+        y = ellipse_bubble[0][1]
+        #TODO Figure out what these offsets are for
         x += self.x
         y += self.y
 
@@ -156,7 +159,7 @@ class TestBox:
             cv.waitKey()
         return box
 
-    def is_bubble(self, contour):
+    def is_bubble(self, contour, box):
         """
         Checks if a contour is of sufficient width and height, is somewhat
         circular, and is within the correct coordinates, with margins for error,
@@ -171,11 +174,29 @@ class TestBox:
 
         """
         (x, y, w, h) = cv.boundingRect(contour)
+        frac_of_row_used_by_bubbles = 0.6
+        min_width = self.page.shape[1] / 50 * frac_of_row_used_by_bubbles #no test will have more than 50 bubbles in a row
+        max_width = self.page.shape[1] / 20 * frac_of_row_used_by_bubbles #no test will have less than 20 bubbles in a row
+        if w < min_width or w > max_width:
+            return False
+        if len(contour) < 5:
+            return False
         aspect_ratio = w / float(h)
+       
+        if aspect_ratio > 2 or aspect_ratio < 0.5:
+            return False
         min_aspect_ratio = self.bubble_width/self.bubble_height * 0.8
         max_aspect_ratio = self.bubble_width/self.bubble_height * 1.3
 
+        
+        ellipse = cv.fitEllipse(contour)
+        #ex, ey = ellipse[0]
+        eh, ew = ellipse[1]
 
+        rotation = ellipse[2]
+        ellipse_aspect_ratio = ew / float(eh)
+        max_aspect_ratio_dif = 0.2
+        aspect_ratio_dif = np.abs(aspect_ratio-ellipse_aspect_ratio)
 
         # Add offsets to get coordinates in relation to the whole test image 
         # instead of in relation to the test box.
@@ -188,7 +209,10 @@ class TestBox:
             w > self.bubble_width * 1.2 or 
             h > self.bubble_height * 1.2 or
             aspect_ratio < min_aspect_ratio or
-            aspect_ratio > max_aspect_ratio):
+            aspect_ratio > max_aspect_ratio or 
+            aspect_ratio_dif > max_aspect_ratio_dif or 
+            rotation < 86 or
+            rotation > 94):
             # if self.debug_mode:
             #     if aspect_ratio > min_aspect_ratio and aspect_ratio < max_aspect_ratio and w > 15:
             #         print(f"not considered a bubble because width is {w:.2f} not between, {(self.bubble_width * 0.8):.2f}, {(self.bubble_width * 2.0):.2f}, or height is {h:.2f} not between, {(self.bubble_height * 0.8):.2f}, {(self.bubble_height * 2.0):.2f}, or aspect ratio is {aspect_ratio:.2f} not between {min_aspect_ratio}, {max_aspect_ratio}")
@@ -223,14 +247,13 @@ class TestBox:
             return bubbles[0]
         biggest_area = cv.contourArea(bubbles[0])
         biggest_bubble = bubbles[0]
-        biggest_i = 0
-        for i, contour in enumerate(bubbles):
+        for contour in bubbles:
             contour_area = cv.contourArea(contour)
             if contour_area >= biggest_area:
                 biggest_area = contour_area
                 biggest_bubble = contour
-                biggest_i = i  
-        return biggest_bubble, biggest_i
+                  
+        return biggest_bubble
 
     def get_expected_bubble_locations(self, box_extremes, group_extremes):
         """
@@ -241,17 +264,25 @@ class TestBox:
         locations = []
         sorted_xs = sorted(box_extremes[0])
         sorted_ys = sorted(box_extremes[1])
-        top_row_bubble_count = int((len(self.groups) * self.columns)/2)
-        top_row_y = np.median(sorted_ys[:top_row_bubble_count])
-        bot_row_y = np.median(sorted_ys[-top_row_bubble_count])
+        min_bubbles_per_row = int((len(self.groups) * self.columns)/5)
+        if len(sorted_xs) < min_bubbles_per_row:
+            return []
+        top_row_y = np.median(sorted_ys[:min_bubbles_per_row])
+        bot_row_y = np.median(sorted_ys[-min_bubbles_per_row])
         step_size_y = (bot_row_y - top_row_y)/(self.rows -1)
-        
+        # We lways expect to have the same number in each group, unless it's the last group
+        expected_number_of_questions = self.rows*len(self.groups)
+        num_fewer_last_col = expected_number_of_questions - self.num_questions
         for _ in range(len(self.groups)):
             locations.append([])
         for group_num, group in enumerate(locations):
+            if group_num == len(self.groups)-1:
+                row_count = self.rows - num_fewer_last_col
+            else:
+                row_count = self.rows
             sorted_xs = sorted(group_extremes[group_num][0])
             sorted_ys = sorted(group_extremes[group_num][1])
-            col_bubble_count = max(int(self.rows/2),2)
+            col_bubble_count = int(row_count/2)
             left_col_x = np.median(sorted_xs[1:col_bubble_count])
             right_col_x = np.median(sorted_xs[-col_bubble_count:-1])
             step_size_x = (right_col_x-left_col_x)/(self.columns -1)
@@ -282,6 +313,27 @@ class TestBox:
                     return False
         return True
 
+    def get_model_bubble(self, bubbles):
+        """
+        Finds and returns a bubble that is closest to the median height and width of all the bubbles in this box.
+        """
+        allbubbles = np.concatenate(bubbles)
+        if len(allbubbles) == 0: 
+            return None
+        median_height = np.median([cv.boundingRect(bubble)[3] for bubble in allbubbles])
+        median_width = np.median([cv.boundingRect(bubble)[2] for bubble in allbubbles])
+        best_width_dif = np.inf
+        best_height_dif = np.inf
+        best_bubble = allbubbles[0]
+        for bubble in allbubbles:
+            _x, _y, bubble_width, bubble_height = cv.boundingRect(bubble)
+            width_dif = np.abs(bubble_width - median_width)
+            height_dif = np.abs(bubble_height - median_height)
+            if  width_dif < best_width_dif and height_dif < best_height_dif:
+                best_bubble = bubble
+                best_width_dif, best_height_dif = width_dif, height_dif
+                
+        return best_bubble
         
     def bubble_cleanup(self, bubbles, box_extremes, group_extremes, box):
         """
@@ -290,6 +342,8 @@ class TestBox:
         be one on the grid, then we call rescue_expected_bubbles on that question.
         Lastly, it gets rid of overlapping bubbles.
         """
+        if len(np.concatenate(bubbles)) == 0:
+            return []
         expected_bubble_locations = self.get_expected_bubble_locations(box_extremes, group_extremes)
         if self.debug_mode:
             colorbox = cv.cvtColor(box, cv.COLOR_GRAY2BGR)
@@ -301,33 +355,51 @@ class TestBox:
         clean_bubbles = []
         for _ in range(len(self.groups)):
             clean_bubbles.append([])
-        model_bubble = bubbles[0][0]
+        model_bubble = self.get_model_bubble(bubbles)
         for group_num, group in enumerate(expected_bubble_locations):
-            for i, location in enumerate(group):
+            for bubble_num, location in enumerate(group):
                 if self.orientation == 'top-to-bottom':
                     offset = group_num * self.columns
                 if self.orientation == 'left-to-right':
                     offset = group_num * self.rows
-                qnum = int(i/self.bubbles_per_q) + offset
+                qnum = int(bubble_num/self.bubbles_per_q) + offset
                 if qnum >= self.num_questions:
                     break
 
                 bubble_to_append = None
-                index_to_append = 0
                 overlapping_indices = self.get_overlapping_bubbles(bubbles, location)
                 overlapping_bubbles = [bubbles[oi[0]][oi[1]] for oi in overlapping_indices]
                 if len(overlapping_bubbles) == 0 and len(clean_bubbles[group_num]) < self.num_questions:
                     bubble_to_append = self.rescue_expected_bubbles(model_bubble, location)
                 elif len(overlapping_bubbles) == 1:
                     bubble_to_append = overlapping_bubbles[0]
+                    group_index, bubble_index = overlapping_indices[0]
+                    bubbles[group_index][bubble_index] = None
                 elif len(overlapping_bubbles) > 1 and self.all_contours_overlap(overlapping_bubbles):
-                    bubble_to_append, index_to_append = self.compress_overlapping_bubbles(overlapping_bubbles)
+                    bubble_to_append = self.compress_overlapping_bubbles(overlapping_bubbles)
+                    # We don't want to use bubbles multiple times
+                    for group_index, bubble_index in overlapping_indices:
+                        bubbles[group_index][bubble_index] = None    
                 else:
                     print(f"All the bubbles in this location ({location}) didn't overlap each other. Not putting a bubble for this location.")
-                
+
                 if bubble_to_append is not None:
+                    #if the bubble we think is correct overlapps with one that already exists
+                    # everything is just wrong and we need to give up and try another threshold.
+                    ellipse_bubble = cv.fitEllipse(bubble_to_append)
+                    for group in clean_bubbles:
+                        for bubble in group:
+                            if bubble is None:
+                                continue
+                            # colorbox = cv.cvtColor(box, cv.COLOR_GRAY2BGR)
+                            # cv.ellipse(colorbox, ellipse_bubble, (0,255,0), -1)
+                            # cv.ellipse(colorbox, cv.fitEllipse(bubble), (0,255,0), -1)
+                            # cv.imshow('', colorbox)
+                            # cv.waitKey()
+                            if self.ellipses_overlap(ellipse_bubble, cv.fitEllipse(bubble)):
+                                return clean_bubbles
                     clean_bubbles[group_num].append(bubble_to_append)
-                    bubbles[group_num][index_to_append] = None                 
+
         return clean_bubbles
 
     def get_bubbles(self, box):
@@ -343,8 +415,7 @@ class TestBox:
 
         """
         # Find bubbles in box.
-        contours, _ = cv.findContours(box, cv.RETR_TREE, 
-            cv.CHAIN_APPROX_SIMPLE)
+        contours, _ = cv.findContours(box, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
     
         #used for imshows later
         colorbox = cv.cvtColor(box, cv.COLOR_GRAY2BGR)
@@ -361,9 +432,13 @@ class TestBox:
         box_extremes = [[], []]
         # Check if contour is bubble; if it is, add to its appropriate group.
         for contour in contours:
-            if self.is_bubble(contour):
+            if self.is_bubble(contour, box):
                 allbubbles.append(contour)            
                 group_num = self.get_bubble_group(contour)
+                # if group_num == 1:
+                #     cv.drawContours(colorbox, [contour], -1, (255,0,140), 3)
+                #     cv.imshow('', colorbox)
+                #     cv.waitKey() 
                 if group_num is not None: 
                     bubbles[group_num].append(contour)
                     contour_y = np.mean([p[0][1] for p in contour])
@@ -374,11 +449,7 @@ class TestBox:
                     group_extremes[group_num][1].append(contour_y)
             else:
                 nonbubbles.append(contour)
-
-
-
         clean_bubbles = self.bubble_cleanup(bubbles, box_extremes, group_extremes, box)
-
         if self.debug_mode:
             # for contour in sorted(contours, key = lambda a: cv.boundingRect(a)[1]):
             #     area = cv.contourArea(contour)
@@ -392,15 +463,26 @@ class TestBox:
             cv.drawContours(colorbox, allbubbles, -1, (255,0,140), 5)
             cv.imshow('', colorbox)
             cv.waitKey()
-            #show the clean bubbles in yellow.
 
+            #show the clean bubbles in yellow.
             for group in clean_bubbles:
-                cv.drawContours(colorbox, group, -1, (0,255,255), 3)
+                cv.drawContours(colorbox, group, -1, (0,255,255), 2)
             cv.imshow('', colorbox)
             cv.waitKey()
             
-            #show the detected contours in green.
-            cv.drawContours(colorbox, contours, -1, (0,255,0), 1)
+            # #show the detected contours in green.
+            # cv.drawContours(colorbox, contours, -1, (0,255,0), 1)
+            # cv.imshow('', colorbox)
+            # cv.waitKey()
+
+            #show the config files values in blue
+            for group in self.groups:
+                for key in ["x_min", "x_max"]:
+                    x = int(group[key])
+                    cv.line(colorbox, (x, int(group["y_min"])), (x, int(group["y_max"])), (255, 100, 0), 2)
+                for key in ["y_min", "y_max"]:
+                    y = int(group[key])
+                    cv.line(colorbox, (int(group["x_min"]), y), (int(group["x_max"]), y), (255, 100, 0), 2)
             cv.imshow('', colorbox)
             cv.waitKey()
         return clean_bubbles, nonbubbles
@@ -421,27 +503,15 @@ class TestBox:
         
         if w < 100:
             return False
-        im = threshold[y:y+h, x:x+w]
-        im = cv.resize(im, None, fx=self.scale, fy=self.scale)
-        
-        #print("box", x, y, w, h)
-        im = utils.get_transform(box, threshold)
-        im = self.mask_edges(im)
-        # if self.debug_mode:
-        #     cv.imshow('', im)
-        #     cv.waitKey()
-        contours, _ = cv.findContours(im, cv.RETR_EXTERNAL, 
-            cv.CHAIN_APPROX_SIMPLE)
-        
-        #colorim = cv.cvtColor(im, cv.COLOR_GRAY2BGR)
+        threshold = utils.get_transform(box, threshold)
+        contours, _ = cv.findContours(threshold, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
+
         for contour in contours:
-            # if self.debug_mode:
-            #     #show the detected bubbles in blue.
-            #     cv.drawContours(colorim, contour, -1, (255,0,0), 3)
-            if self.is_bubble(contour):
+            if self.is_bubble(contour, threshold):
                 bubbles.append(contour)
         # if self.debug_mode:
-        #     print(len(contours))
+        #     colorim = cv.cvtColor(threshold, cv.COLOR_GRAY2BGR)
+        #     cv.drawContours(colorim, bubbles, -1, (255,0,0), 3)
         #     cv.imshow('', colorim)
         #     cv.waitKey()
         if len(bubbles) < self.min_bubbles_per_box:
@@ -469,8 +539,6 @@ class TestBox:
             w > .5 * page_width and
             w*h <= .95 * page_height * page_width and
             self.box_contains_bubbles(contour, page)):
-            #if self.debug_mode:
-                #print(f'Width: {w} Height:{h} Aspect Ratio:{w/h}')
             return True
         else:
             return False
@@ -481,6 +549,33 @@ class TestBox:
             if self.contours_overlap(box, contour):
                 return True
 
+    def ellipses_overlap(self, ellipse1, ellipse2):
+        # **IMPORTANT** This function is not perfect. It uses the center point 
+        # of an ellipse to create a rectangle and checks it against that other 
+        # ellipses rectangle.
+        
+        rot1, rot2 = ellipse1[2], ellipse2[2]
+        degree_threshold = 5
+
+        #If the ellipses have different rotations, we shouldn't be here.
+        #Also handles the special case where want 358 and 2 to not be rejected
+        if np.abs(rot2 - rot1) > degree_threshold and \
+        np.abs((rot2+degree_threshold)%360 - (rot1+degree_threshold)%360) > degree_threshold:
+            return None
+        
+        x1, y1, maj1, min1 = ellipse1[0] + ellipse1[1]
+        x2, y2, maj2, min2 = ellipse2[0] + ellipse2[1]
+               
+        # If we don't have a straight image, we shouldn't be getting here
+        if np.abs(rot2 - 90) > 5:
+            return None
+
+        h1, w1, h2, w2 = maj1/2, min1/2, maj2/2, min2/2
+        height_tolerance = h1/5
+        width_tolerance = w1/5  
+        # it is easier to calculate the non-overlapping cases because there are less of them.
+        return not (x1> x2 + w2 + w1 - width_tolerance or x2 > x1 + w1 + w2 - width_tolerance) and \
+               not (y1 > y2 + h2 + h1 - height_tolerance or y2 > y1 + h1 + h2 - height_tolerance) 
 
 
     def get_box(self, box_num):
@@ -495,14 +590,15 @@ class TestBox:
         # Blur and threshold the page, then find boxes within the page.
         thresh_page = utils.get_threshold(self.page, self.threshold_constant)
         inverted_page = cv.bitwise_not(self.page)
-        contours, _ = cv.findContours(thresh_page, cv.RETR_TREE, 
-            cv.CHAIN_APPROX_SIMPLE)
+        contours, _ = cv.findContours(thresh_page, cv.RETR_TREE, cv.CHAIN_APPROX_SIMPLE)
         potential_boxes = []
         # Iterate through contours until the correct box is found.
         for contour in contours:
             if self.is_box(contour, thresh_page):
                 if not self.similar_box_found(contour, potential_boxes):
-                    potential_boxes.append(contour)
+                    peri = cv.arcLength(contour, True)
+                    approx = cv.approxPolyDP(contour, 0.02 * peri, True)
+                    potential_boxes.append(approx)
         #sorting the potential boxes by y position
         potential_boxes = sorted(potential_boxes, key=lambda b:cv.boundingRect(b)[1])
             
@@ -513,7 +609,7 @@ class TestBox:
         else:
             if self.debug_mode:
                 colorbox = cv.cvtColor(thresh_page, cv.COLOR_GRAY2BGR)
-                cv.drawContours(colorbox, potential_boxes[box_num], -1, (255,0,255), 3)
+                cv.drawContours(colorbox, potential_boxes[box_num], -1, (255,0,255), 6)
                 cv.imshow('', colorbox)
                 cv.waitKey()                        
             return utils.get_transform(potential_boxes[box_num], thresh_page), \
@@ -556,12 +652,12 @@ class TestBox:
             if self.rows == 1:
                 return 0
             else:
-                return (config['y_max'] - config['y_min']) / (self.rows - 1)
+                return (config['y_max'] - config['y_min']) / (self.rows)
         elif self.orientation == 'top-to-bottom':
             if self.columns == 1:
                 return 0
             else:
-                return (config['x_max'] - config['x_min']) / (self.columns - 1)
+                return (config['x_max'] - config['x_min']) / (self.columns)
 
     def get_question_offset(self, config):
         """
@@ -576,9 +672,9 @@ class TestBox:
 
         """
         if self.orientation == 'left-to-right':
-            return config['y_min'] - self.y
+            return config['y_min'] - self.y + self.bubble_width/2
         elif self.orientation == 'top-to-bottom':
-            return config['x_min'] - self.x
+            return config['x_min'] - self.x + self.bubble_height/2
 
     def get_question_num(self, bubble, diff, offset):
         """
@@ -597,16 +693,16 @@ class TestBox:
         if diff == 0:
             return 0
 
-        (x, y, _, _) = cv.boundingRect(bubble)
-
+        ellipse = cv.fitEllipse(bubble)
+        x, y = ellipse[0]
         if self.debug_mode:
             print(f"qnum {round((y - offset) / diff)}= bubble y: {y} - offset {offset} / diff: {diff}")
 
 
         if self.orientation == 'left-to-right':
-            return round((y - offset) / diff)
+            return max(round((y - offset) / diff),0)
         elif self.orientation == 'top-to-bottom':
-            return round((x - offset) / diff)     
+            return max(round((x - offset) / diff),0)    
 
     def group_by_question(self, bubbles, config):
         """
@@ -620,12 +716,11 @@ class TestBox:
                 bubble contours for a question.
 
         """
+
         questions = self.init_questions()
-        diff = self.get_question_diff(config)
-        offset = self.get_question_offset(config)
     
-        for bubble in bubbles:
-            question_num = self.get_question_num(bubble, diff, offset)
+        for bubble_num, bubble in enumerate(bubbles):
+            question_num = int(bubble_num/self.bubbles_per_q)
             questions[question_num].append(bubble)
 
         return questions
@@ -654,14 +749,14 @@ class TestBox:
             zerobased_question_num = question_num - (group_num * self.rows) - self.starting_question_num
             x_min = max(group_config['x_min'] - self.x - self.x_error, 0)
             x_max = group_config['x_max'] - self.x + self.x_error
-            y_min = max((diff * zerobased_question_num) + offset - (self.y_error / 2), 0)
+            y_min = max((diff * zerobased_question_num) + group_config['y_min'] - self.y_error / 2, 0)
             y_max = y_min + self.bubble_height + self.y_error
         elif self. orientation == 'top-to-bottom':
             zerobased_question_num = question_num - (group_num * self.columns) - self.starting_question_num
             x_min = max((diff * zerobased_question_num) + offset - (self.x_error / 2), 0)
-            x_max = x_min + self.bubble_width + self.x_error
-            y_min = max(group_config['y_min'] - self.y - self.y_error, 0)
-            y_max = group_config['y_max'] - self.y + self.y_error
+            x_max = x_min + self.bubble_width + (self.x_error / 2)
+            y_min = max(group_config['y_min'] - self.y -  (self.y_error / 2), 0)
+            y_max = group_config['y_max'] - self.y + (self.y_error / 2)
 
         return x_min, x_max, y_min, y_max
 
@@ -917,7 +1012,7 @@ class TestBox:
                 cv.ellipse(colorbox, shrunken_bubble, (0,255,0), -1)
             cv.imshow('', colorbox)
             cv.waitKey()
-            
+        
         return shrunken_bubbles
 
 
@@ -933,30 +1028,22 @@ class TestBox:
 
         """
         bubble_vals = {}
-        for (i, group) in enumerate(bubbles):
+        for (group_index, group) in enumerate(bubbles):
             # Split a group of bubbles by question.
-            qgroup = self.group_by_question(group, self.groups[i])
+            qgroup = self.group_by_question(group, self.groups[group_index])
             # if your qgroup only contains one thing, it is probably not a group, so we should filter it out
             if len(qgroup) <= 1:
                 continue
             # Sort bubbles in each question based on box orientation then grade.
-            for (j, question) in enumerate(qgroup, self.starting_question_num):
+            for (q_index, question) in enumerate(qgroup, self.starting_question_num):
                 # Make sure that we have enough bubbles in each question.
-                question_num = j + (i * len(qgroup))
+                question_num = q_index + (group_index * len(qgroup))
 
-                #creates a new lambda function that finds the x coordinate of a contour
-                if self.orientation == "top-to-bottom":
-                    # if its top to bottom we are using y as the thing to sort by
-                    sorter = lambda cntr: cv.boundingRect(cntr)[1]
-                elif self.orientation == "left-to-right":
-                    # if its top to bottom we are using x as the thing to sort by
-                    sorter = lambda cntr: cv.boundingRect(cntr)[0]
-                question_sorted = sorted(question, key = sorter)
-                if len(question_sorted) < self.bubbles_per_q and self.orientation == "left-to-right" and question_num <= self.num_questions : #and len(clean_question) > 0:
-                    raise Exception(f'We were unable to find the expected number of bubbles ({len(question_sorted)} != {self.bubbles_per_q}) for question {question_num}.')
-                shrunken_question = self.shrink_bubbles(question_sorted, box)
+                if len(question) < self.bubbles_per_q and self.orientation == "left-to-right" and question_num <= self.num_questions : 
+                    raise Exception(f'We were unable to find the expected number of bubbles ({len(question)} != {self.bubbles_per_q}) for question {question_num}.')
+                shrunken_question = self.shrink_bubbles(question, box)
                 if len(shrunken_question) > 0:
-                    bubble_vals[question_num] = self.grade_question(shrunken_question, question_num, i, graybox)
+                    bubble_vals[question_num] = self.grade_question(shrunken_question, question_num, group_index, graybox)
         return bubble_vals
 
     def get_filled_bubble_vals(self, bubble_vals, unfilled_median):
@@ -988,8 +1075,8 @@ class TestBox:
         question_vals = sorted(question_vals)
         total = 0
         top_dif = question_vals[-1] - question_vals[-2]
-        prev_val = question_vals[0]
-        for val in question_vals[1:-1]:
+        prev_val = question_vals[1]
+        for val in question_vals[2:-1]:
             total += val-prev_val
             prev_val = val
         return top_dif/(total/(len(question_vals)-2))
@@ -999,7 +1086,7 @@ class TestBox:
         # Goes through all bubbles and decides whether they're closer to the 
         # median filled or the median unfilled and updates bubbled accordingly
         num_questions = len(bubble_vals.keys())
-        bottom_val_index = int((num_questions*self.bubbles_per_q)*0.3)
+        bottom_val_index = int((num_questions*self.bubbles_per_q)*0.7)
         unfilled_bubble_vals = sorted(functools.reduce(operator.iconcat, bubble_vals.values(), []))[0:bottom_val_index]   
         unfilled_median = np.median(unfilled_bubble_vals)
         filled_bubble_vals = self.get_filled_bubble_vals(bubble_vals, unfilled_median)
@@ -1031,7 +1118,7 @@ class TestBox:
             #can we rescue bubbles based on a combination of values?        
             if bubbled[qnum] == '' and \
                (( min((qvar / variance_threshold), 1.2)) + \
-               (darkest_bubble_val / (filled_threshold*.95)) > 1.65):
+               (darkest_bubble_val / (filled_threshold*0.95)) > 2.5):
                     
                 bubbled[qnum] = self.format_answer(str(darkest_index), qnum)
             if bubbled[qnum] == '':
@@ -1077,6 +1164,7 @@ class TestBox:
             for constant in np.linspace(0, 30, 75):
                 if constant > 0:
                     gradable_box = utils.get_threshold(cv.bitwise_not(gradable_im), constant)
+                
                 bubbles, nonbubbles = self.get_bubbles(gradable_box)
                 
                 expected_bubble_num = self.bubbles_per_q*self.num_questions
@@ -1084,8 +1172,9 @@ class TestBox:
                 print(f"Found {num_bubbles} with threshold constant {constant}")
                 if num_bubbles == expected_bubble_num:
                     break
-
             try:
+                if num_bubbles != expected_bubble_num:
+                    raise Exception(f"Found {num_bubbles}/{expected_bubble_num} after trying all thresholds")
                 bubble_vals = self.get_bubble_vals(bubbles, nonbubbles, gradable_box, gradable_im)
             except Exception as err:
                 print(err)
