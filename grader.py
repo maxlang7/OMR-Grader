@@ -7,6 +7,7 @@ import cv2 as cv
 from imutils.perspective import four_point_transform
 import numpy as np
 import config_parser
+from collections import deque
 from test_box import TestBox
 import utils
 
@@ -17,14 +18,23 @@ class Grader:
 
 
     def get_contour_width(self, contour):
+        """
+        Finds and returns the width of a contour
+        """
         _, _, w, _ = cv.boundingRect(contour)
         return w
     
     def sort_contours_by_width(self, contours):
+        """
+        Sorts the list of contours given by their width using the get_contour_width function
+        """
         return sorted(contours, key=lambda x: self.get_contour_width(x), reverse=True)
     
     def get_first_and_last_points(self, contour, xy):
-        #Gets the first and last points of the contour it is passed (element decides whether it sorts by x or y)
+        """
+        Gets the first and last points of the contour it is passed 
+        ("xy" decides whether it sorts by x or y)
+        """
         min_x = [np.inf, 0]
         max_x = [-1, 0]
         min_y = [0, np.inf]
@@ -48,12 +58,15 @@ class Grader:
 
     def find_page(self, im, test, debug_mode, threshold_constant):
         """
-        Finds and returns the outside box that contains the entire test. Will use this to scale the given image.
+        Finds and returns the outside box that contains the entire test. 
+        We will use this to scale the given image.
 
         Args:
             im (numpy.ndarray): An ndarray representing the entire test image.
             test (string): A string saying what type of test we are trying to grade (sat, act, etc)
-
+            debug_mode (boolean): Whether or not we should show images or print in print statements
+            threshold_constant (float): What threshold his to be used in the get_threshold function call. 
+            P.S. We are looping through many different ones
         Returns:
             numpy.ndarray: An ndarray representing the test box in the image.
 
@@ -131,6 +144,10 @@ class Grader:
         return transformed_image
 
     def merge_lines(self, contour_properties, imgray):
+        """
+        Goes through all the contour_properties and checks for lines that have similar slope
+        and are ending and starting at about the same place. 
+        """
         clean_contour_properties = []
         page_height, page_width = imgray.shape
         y_threshold = 0.007*page_height
@@ -167,8 +184,7 @@ class Grader:
         
     def act_draw_boxes(self, image, threshold_constant):
         """
-        Converts top and bottom lines into boxes and draws them onto the page
-
+        Converts top and bottom lines into boxes and draws them onto the page.
         """
         threshold = utils.get_threshold(image, threshold_constant)
         # cv.imshow('', threshold)
@@ -213,6 +229,10 @@ class Grader:
         return image
 
     def get_contour_properties(self, contour):
+        """
+        Gets the first point, last point, slope, intercept, width, height, and 
+        the np.array of the contour pased
+        """
         x, y, w, h = cv.boundingRect(contour)
         xs = [p[0][0] for p in contour]
         ys = [p[0][1] for p in contour]
@@ -237,6 +257,17 @@ class Grader:
                }
 
     def get_line_contours(self, contours, imgray, min_cnum, max_cnum):
+        """
+        Goes through the list of contours and decides whether they are lines. 
+
+        Args:
+            contours (list): A list of contours in the form of np.array()
+            imgray (numpy.ndarray): A numpy.ndarray representing the whole test image
+            min_cnum (int): The minimum number of contours to return
+            max_cnum (int): The maximum number of contours to return 
+        Returns:
+            line_contours (list): A list of line contours
+        """
         line_contours = []
         if len(contours) < min_cnum:
             raise Exception('We could not find the detailed features in your image. Please send an image that has a high enough resolution')
@@ -291,11 +322,9 @@ class Grader:
                 line_contours.append(c)
                 line_widths.append(w)
                 
-
         if len(line_contours) < min_cnum or len(line_contours) > max_cnum:
             #find contours with similar slopes and merge them
             raise Exception(f"We couldn't find the right amount lines between the test sections to indentify where the bubbles are. We found these widths {line_widths}")
-        
 
         return sorted(line_contours, key=lambda a: self.get_line_contour_y(a), reverse = False)
 
@@ -388,7 +417,9 @@ class Grader:
         return json.dumps(data)
 
     def initialize_config(self, test, page_number):
-        
+        """
+        Uses the config parser file to unpack the config file into self.config
+        """
         #Identify configuration file  
         config_fname = (os.path.dirname(os.path.abspath(__file__)) 
         + f'/config/{test}_page{page_number}.json')
@@ -414,7 +445,7 @@ class Grader:
 
     def initialize_return_data(self):
         """
-        Initializes the data structure we use to return answers and errors/statuses
+        Initializes the data structure we use to return answers and errors/statuses.
         """
         data = {
             'status' : 0,
@@ -426,7 +457,8 @@ class Grader:
     def grade(self, image_name, verbose_mode, debug_mode, scale, test, page_number):
         """
         Grades a test image and outputs the result to stdout as a JSON object.
-
+        It goes through many different thresholds to make sure that we get the page
+        
         Args:
             image_name (str): Filepath to the test image to be graded.
             verbose_mode (bool): True to run program in verbose mode, False 
@@ -501,7 +533,8 @@ class Grader:
 
                 # Grade each test box and add result to data.
                 for box_num, box_config in enumerate(config['boxes']):  
-                    #For debugging purposes: if box_num != 0: continue
+                    #For debugging purposes: 
+                    if box_num != : continue
                     box_config['x_error'] = config['x_error']
                     box_config['y_error'] = config['y_error']
                     box_config['bubble_width'] = config['bubble_width']
