@@ -15,43 +15,43 @@
             "multiple_responses": false,
             "num_q_per_super_question": 1, 
             "starting_question_num": 1,
-            "x": 50.0,
-            "y": 15.0,
+            "x": 0.0,
+            "y": 0.0,
             "rows": 3,
             "columns": 4,
             "num_questions": 15,
             "expected_fraction_of_unfilled_bubbles": 0.75, 
             "groups": [
                 {
-                    "x_min": 100.0, 
-                    "x_max": 260.0,
-                    "y_min": 70.0, 
-                    "y_max": 200.0
+                    "x_min": 70.0, 
+                    "x_max": 215.0,
+                    "y_min": 50.0, 
+                    "y_max": 210.0
                 },  
                 {
-                    "x_min": 280.0,
-                    "x_max": 460.0,
-                    "y_min": 70.0,
-                    "y_max": 200.0       
+                    "x_min": 290.0,
+                    "x_max": 455.0,
+                    "y_min": 50.0,
+                    "y_max": 210.0       
                 },
                 {
-                    "x_min": 540.0,
-                    "x_max": 720.0,
-                    "y_min": 70.0,
-                    "y_max": 200.0                    
+                    "x_min": 530.0,
+                    "x_max": 693.0,
+                    "y_min": 50.0,
+                    "y_max": 210.0                    
                 },
 
                 {
-                    "x_min": 780.0,
-                    "x_max": 940.0,
-                    "y_min": 70.0,
-                    "y_max": 200.0                    
+                    "x_min": 760.0,
+                    "x_max": 920.0,
+                    "y_min": 50.0,
+                    "y_max": 210.0                    
                 },
                 {
                     "x_min": 980.0,
-                    "x_max": 1160.0,
-                    "y_min": 70.0,
-                    "y_max": 200.0                    
+                    "x_max": 1140.0,
+                    "y_min": 50.0,
+                    "y_max": 210.0                    
                 }
             ] 
         },
@@ -62,43 +62,43 @@
             "multiple_responses": false,
             "num_q_per_super_question": 4, 
             "starting_question_num": 16,
-            "x": 30.0,
-            "y": 120.0,
+            "x": 0.0,
+            "y": 0.0,
             "rows": 12,
             "columns": 4,
             "num_questions": 20,
             "expected_fraction_of_unfilled_bubbles": 0.97, 
             "groups": [
                 {
-                    "x_min": 90.0, 
-                    "x_max": 205.0,
-                    "y_min": 270.0,
-                    "y_max": 680.0
+                    "x_min": 55.0, 
+                    "x_max": 200.0,
+                    "y_min": 145.0,
+                    "y_max": 575.0
                 },  
                 {
-                    "x_min": 320.0,
+                    "x_min": 295.0,
                     "x_max": 435.0,
-                    "y_min": 270.0,
-                    "y_max": 680.0    
+                    "y_min": 145.0,
+                    "y_max": 575.0    
                 },
                 {
-                    "x_min": 545.0,
+                    "x_min": 520.0,
                     "x_max": 660.0,
-                    "y_min": 270.0,
-                    "y_max": 680.0                   
+                    "y_min": 145.0,
+                    "y_max": 575.0                   
                 },
 
                 {
-                    "x_min": 770.0,
+                    "x_min": 750.0,
                     "x_max": 890.0,
-                    "y_min": 270.0,
-                    "y_max": 680.0                  
+                    "y_min": 145.0,
+                    "y_max": 575.0                  
                 },
                 {
-                    "x_min": 1000.0,
-                    "x_max": 1120.0,
-                    "y_min": 270.0,
-                    "y_max": 680.0                  
+                    "x_min": 970.0,
+                    "x_max": 1135.0,
+                    "y_min": 145.0,
+                    "y_max": 575.0                  
                 }
             ] 
         } 

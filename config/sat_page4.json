@@ -15,42 +15,42 @@
             "multiple_responses": false,
             "num_q_per_super_question": 1, 
             "starting_question_num": 1,
-            "x": 30.0,
-            "y": 10.0,
+            "x": 0.0,
+            "y": 0.0,
             "rows": 6,
             "columns": 4, 
             "num_questions": 30,
             "expected_fraction_of_unfilled_bubbles": 0.75,  
             "groups": [
                 {
-                    "x_min": 100.0, 
-                    "x_max": 260.0,
-                    "y_min": 50.0,
-                    "y_max": 380.0
+                    "x_min": 65.0, 
+                    "x_max": 223.0,
+                    "y_min": 45.0,
+                    "y_max": 410.0
                 },
                 {
-                    "x_min": 315.0,
-                    "x_max": 460.0,
-                    "y_min": 50.0,
-                    "y_max": 380.0       
+                    "x_min": 290.0,
+                    "x_max": 450.0,
+                    "y_min": 45.0,
+                    "y_max": 410.0       
                 },
                 {
-                    "x_min": 550.0,
-                    "x_max": 720.0,
-                    "y_min": 50.0,
-                    "y_max": 380.0                    
+                    "x_min": 520.0,
+                    "x_max": 680.0,
+                    "y_min": 45.0,
+                    "y_max": 410.0                    
                 },
                 {
-                    "x_min": 790.0,
-                    "x_max": 940.0,
-                    "y_min": 50.0,
-                    "y_max": 380.0                    
+                    "x_min": 760.0,
+                    "x_max": 910.0,
+                    "y_min": 45.0,
+                    "y_max": 410.0                    
                 },
                 {
-                    "x_min": 1010.0,
-                    "x_max": 1160.0,
-                    "y_min": 50.0,
-                    "y_max": 380.0                    
+                    "x_min": 980.0,
+                    "x_max": 1130.0,
+                    "y_min": 45.0,
+                    "y_max": 410.0                    
                 }
             ]
         }
