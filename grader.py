@@ -199,16 +199,14 @@ class Grader:
         # cv.imshow('', colorim)
         # cv.waitKey()
         # we add one because we don't grade the first box
-        num_expected_boxes = len(self.config['boxes']) + 1    
-        ty = self.get_line_contour_y(line_contours[0])
-        by = self.get_line_contour_y(line_contours[-1])
-        page_y_dif = by - ty 
-        min_box_height = page_y_dif/(num_expected_boxes/2)
+        num_expected_boxes = len(self.config['boxes'])  
+        h, w = image.shape
+        min_box_height = (h/num_expected_boxes+1)/2
         prev_contour = line_contours[0]
-        boxes_to_draw = []
+        boxes_to_draw = deque()
+
         areas_to_erase = []
         x = 1
-        w = image.shape[1] -1
         for c in line_contours:
             # calculating height by finding difference beween y values.
             current_box_height = self.get_line_contour_y(c) - self.get_line_contour_y(prev_contour)
@@ -216,16 +214,25 @@ class Grader:
             if current_box_height > min_box_height:
                 ty = self.get_line_contour_y(prev_contour)
                 by = self.get_line_contour_y(c)
-                boxes_to_draw.append(np.array(([x,ty+5],[w,ty+5],[w,by-5], [x,by-5]), dtype=np.int32))
-                areas_to_erase.append(np.array(([x,ty-erase_height],[w,ty-erase_height],[w,ty+erase_height], [x,ty+erase_height]), dtype=np.int32))
+                boxes_to_draw.append(np.array(([x,ty+5],[w-1,ty+5],[w-1,by-5], [x,by-5]), dtype=np.int32))
+                areas_to_erase.append(np.array(([x,ty-erase_height],[w-1,ty-erase_height],[w-1,ty+erase_height], [x,ty+erase_height]), dtype=np.int32))
             prev_contour = c
+        # Make sure that theres a box at the top of the page
+        top_box_y_pos = boxes_to_draw[0][0][1]
+        bottom_y_pos = boxes_to_draw[-1][-1][1]
+        image_height = image.shape[0]
+        if top_box_y_pos <= image_height*0.01:
+            boxes_to_draw.popleft()
+        if bottom_y_pos < image_height*0.99:
+            x, ty, by = (0, bottom_y_pos, image_height)
+            boxes_to_draw.append(np.array(([0,ty+5],[w,ty+5],[w,by-5], [0,by-5]), dtype=np.int32)) 
         if len(boxes_to_draw) < num_expected_boxes:
             return None
         #need to erase at the very end of the page too
         areas_to_erase.append(np.array(([x,by-erase_height],[w,by-erase_height],[w,by+erase_height], [x,by+erase_height]), dtype=np.int32))
         cv.drawContours(image, areas_to_erase, -1, 255, -1) 
-        #the first box contains student info, no answers  
-        cv.drawContours(image, boxes_to_draw[1:], -1, 0, 1)
+        #the first box contains student info, no answers
+        cv.drawContours(image, boxes_to_draw, -1, 0, 1)
         return image
 
     def get_contour_properties(self, contour):
@@ -458,7 +465,7 @@ class Grader:
         """
         Grades a test image and outputs the result to stdout as a JSON object.
         It goes through many different thresholds to make sure that we get the page
-        
+
         Args:
             image_name (str): Filepath to the test image to be graded.
             verbose_mode (bool): True to run program in verbose mode, False 
@@ -533,8 +540,7 @@ class Grader:
 
                 # Grade each test box and add result to data.
                 for box_num, box_config in enumerate(config['boxes']):  
-                    #For debugging purposes: 
-                    if box_num != : continue
+                    #For debugging purposes: if box_num != 3: continue
                     box_config['x_error'] = config['x_error']
                     box_config['y_error'] = config['y_error']
                     box_config['bubble_width'] = config['bubble_width']
