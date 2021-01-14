@@ -920,15 +920,37 @@ class TestBox:
                     #     cv.waitKey()
                     #     print(f'rescuing: {x, y, w, h}')
                     return contour 
-                
 
+    def get_question_bubbles(self, bubbles, location):
+        """
+        Tries to find three bubbles with similar y postitions to the loaction. 
+        These are likely to be the same question because bubbles is only one group.
+        """
+        location_y = location[1]
+        good_bubbles = []
+        for bubble in bubbles:
+            if bubble is None:
+                continue
+            bubble_e = cv.fitEllipse(bubble)
+            if np.abs(bubble_e[0][1] - location_y) < self.bubble_height*0.5:
+                good_bubbles.append(bubble_e) 
+        return good_bubbles
 
-    # This function is for when a bubble gets colored outside the lines and its aspect ratio isn't close enough to 1. 
-    # We see if it is in the position that we think a bubble will be and if it is we add it to the list of bubbles. 
-    def rescue_expected_bubbles(self, good_bubble, location):
+     
+    def rescue_expected_bubbles(self, good_bubble, location, group_bubbles):
+        '''
+        This function is for when a bubble gets colored outside the lines and 
+        its aspect ratio isn't close enough to 1. 
+        We see if it is in the position that we think a bubble will be 
+        and if it is we add it to the list of bubbles.
+        '''
+        question_bubbles = self.get_question_bubbles(group_bubbles, location)
         tx, ty, w, h = cv.boundingRect(good_bubble)
         tx, ty = [tx+w/2, ty+h/2]
-        expected_x, expected_y = location
+        expected_x = location[0]
+        expected_y = np.mean([b[0][1] for b in question_bubbles])
+        if math.isnan(expected_y):
+            expected_y = location[1]
         y_add = expected_y - ty
         x_add = expected_x - tx
         copycat_contour = []
