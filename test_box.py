@@ -390,8 +390,16 @@ class TestBox:
                 bubble_to_append = None
                 overlapping_indices = self.get_overlapping_bubbles(bubbles, location)
                 overlapping_bubbles = [bubbles[oi[0]][oi[1]] for oi in overlapping_indices]
-                if len(overlapping_bubbles) == 0 and len(clean_bubbles[group_num]) < self.num_questions:
-                    bubble_to_append = self.rescue_expected_bubbles(model_bubble, location)
+                if len(overlapping_bubbles) == 0: #and len(clean_bubbles[group_num]) < self.num_questions:
+                    bubble_to_append = self.rescue_expected_bubbles(model_bubble, location, clean_bubbles[group_num] + bubbles[group_num])
+                    #if the bubble we think is correct overlapps with one that already exists
+                    # everything is just wrong and we need to give up and try another threshold.
+                    for group in clean_bubbles:
+                        for bubble in group:
+                            if bubble is None:
+                                continue
+                            if self.ellipses_overlap(cv.fitEllipse(bubble_to_append), cv.fitEllipse(bubble)):
+                                return clean_bubbles
                 elif len(overlapping_bubbles) == 1:
                     bubble_to_append = overlapping_bubbles[0]
                     group_index, bubble_index = overlapping_indices[0]
@@ -404,21 +412,7 @@ class TestBox:
                 else:
                     print(f"All the bubbles in this location ({location}) didn't overlap each other. Not putting a bubble for this location.")
 
-                if bubble_to_append is not None:
-                    #if the bubble we think is correct overlapps with one that already exists
-                    # everything is just wrong and we need to give up and try another threshold.
-                    ellipse_bubble = cv.fitEllipse(bubble_to_append)
-                    for group in clean_bubbles:
-                        for bubble in group:
-                            if bubble is None:
-                                continue
-                            # colorbox = cv.cvtColor(box, cv.COLOR_GRAY2BGR)
-                            # cv.ellipse(colorbox, ellipse_bubble, (0,255,0), -1)
-                            # cv.ellipse(colorbox, cv.fitEllipse(bubble), (0,255,0), -1)
-                            # cv.imshow('', colorbox)
-                            # cv.waitKey()
-                            if self.ellipses_overlap(ellipse_bubble, cv.fitEllipse(bubble)):
-                                return clean_bubbles
+                if bubble_to_append is not None: 
                     clean_bubbles[group_num].append(bubble_to_append)
 
         return clean_bubbles
