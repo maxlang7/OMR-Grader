@@ -182,13 +182,19 @@ class TestBox:
         if len(contour) < 5:
             return False
         aspect_ratio = w / float(h)
-       
+        expected_aspect_ratio = self.bubble_width/self.bubble_height
         if aspect_ratio > 2 or aspect_ratio < 0.5:
             return False
-        min_aspect_ratio = self.bubble_width/self.bubble_height * 0.8
-        max_aspect_ratio = self.bubble_width/self.bubble_height * 1.3
+        min_aspect_ratio = expected_aspect_ratio * 0.8
+        max_aspect_ratio = expected_aspect_ratio * 1.3
 
-        
+        if math.isclose(expected_aspect_ratio, 1, rel_tol=0.05):
+            min_rotation = 0
+            max_rotation = 360
+        else:
+            min_rotation = 86
+            max_rotation = 94    
+
         ellipse = cv.fitEllipse(contour)
         #ex, ey = ellipse[0]
         eh, ew = ellipse[1]
@@ -211,8 +217,8 @@ class TestBox:
             aspect_ratio < min_aspect_ratio or
             aspect_ratio > max_aspect_ratio or 
             aspect_ratio_dif > max_aspect_ratio_dif or 
-            rotation < 86 or
-            rotation > 94):
+            rotation < min_rotation or
+            rotation > max_rotation):
             # if self.debug_mode:
             #     if aspect_ratio > min_aspect_ratio and aspect_ratio < max_aspect_ratio and w > 15:
             #         print(f"not considered a bubble because width is {w:.2f} not between, {(self.bubble_width * 0.8):.2f}, {(self.bubble_width * 2.0):.2f}, or height is {h:.2f} not between, {(self.bubble_height * 0.8):.2f}, {(self.bubble_height * 2.0):.2f}, or aspect ratio is {aspect_ratio:.2f} not between {min_aspect_ratio}, {max_aspect_ratio}")
