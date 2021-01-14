@@ -15,9 +15,7 @@ class BoxNotFoundError(Error):
     def __init__(self, message):
         self.message = message
 
-#TODO test_act_page_1: Failed because test 4 found the locations even though the threshold confused the answers.
-#TODO test_act_page_1a: Failed because I'm not really sure.... quetion 72 got nothing when its supposed to be 'B'
-#TODO test_act_page-1b: Falied because we couldn't detect the line above test 1.
+#TODO test_act_page_1a: Failed because there is a blank question where 'G' is called because the letters are inside the bubbles
 class TestBox:
     def __init__(self, page, config, verbose_mode, debug_mode, scale, test, threshold_constant):
         """
@@ -462,6 +460,8 @@ class TestBox:
                     box_extremes[1].append(contour_y)
                     group_extremes[group_num][0].append(contour_x)
                     group_extremes[group_num][1].append(contour_y)
+                else:
+                    print(f'no group found for bubble: {cv.fitEllipse(contour)}')
             else:
                 nonbubbles.append(contour)
         clean_bubbles = self.bubble_cleanup(bubbles, box_extremes, group_extremes, box)
