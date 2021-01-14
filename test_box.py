@@ -1093,15 +1093,8 @@ class TestBox:
         """
         Try to identify a value for a question that distinguishes whether or not one value stands out
         """
-        question_vals = sorted(question_vals)
-        total = 0
-        top_dif = question_vals[-1] - question_vals[-2]
-        prev_val = question_vals[1]
-        for val in question_vals[2:-1]:
-            total += val-prev_val
-            prev_val = val
-        return top_dif/(total/(len(question_vals)-2))
-             
+        med = np.median(question_vals)
+        return np.average([(v-med)**2 for v in question_vals])     
 
     def grade_bubbles(self, bubble_vals, bubbled):
         # Goes through all bubbles and decides whether they're closer to the 
@@ -1112,15 +1105,10 @@ class TestBox:
         unfilled_median = np.median(unfilled_bubble_vals)
         filled_bubble_vals = self.get_filled_bubble_vals(bubble_vals, unfilled_median)
         filled_median = np.median(filled_bubble_vals)
-        qvars = [self.get_qvar(v - unfilled_median) for v in bubble_vals.values()]
-        if len(filled_bubble_vals) > 0.4 * num_questions:
-            variance_threshold = np.median(qvars) * 0.2
-        else: # not enough filled questions, offset from lowest 
-            variance_threshold = np.median(sorted(qvars)[0:int(num_questions/2)])* 10
         if self.test == 'act':
-            multiplier = 0.55 #ACT has printed letter inside bubbles, so we want to require a higher threshold for bubbled
+            multiplier = 0.3 #ACT has printed letter inside bubbles, so we want to require a higher threshold for bubbled
         elif self.test == 'sat':
-            multiplier = 0.5
+            multiplier = 0.15
         filled_threshold = filled_median * multiplier
         for qnum, v in bubble_vals.items():
             corrected_vals = [val - unfilled_median for val in v]
@@ -1130,7 +1118,8 @@ class TestBox:
             darkest_index = None
             
             for bubble_num, val in enumerate(corrected_vals):
-                if val > filled_threshold and qvar > variance_threshold:
+                blank_variance = self.get_qvar(sorted(corrected_vals)[:-1])
+                if val > filled_threshold and qvar > 5*blank_variance:
                     bubbled[qnum] += self.format_answer(str(bubble_num), qnum)
                 if val > darkest_bubble_val:
                     darkest_bubble_val = val
@@ -1138,7 +1127,7 @@ class TestBox:
 
             #can we rescue bubbles based on a combination of values?        
             if bubbled[qnum] == '' and \
-               (( min((qvar / variance_threshold), 1.2)) + \
+               (( min((qvar / blank_variance), 1.2)) + \
                (darkest_bubble_val / (filled_threshold*0.95)) > 2.5):
                     
                 bubbled[qnum] = self.format_answer(str(darkest_index), qnum)
