@@ -231,7 +231,8 @@ class TestBox:
             return False
         (x, y, w, h) = cv.boundingRect(contour1)
         if len(contour2) == 2:
-            (x1, y1, w1, h1) = [contour2[0], contour2[1], self.bubble_width*0.5, self.bubble_height*0.5]
+            w,h = self.bubble_width*0.4, self.bubble_height*0.4
+            (x1, y1, w1, h1) = [contour2[0]-w, contour2[1]-h, 2*w, 2*h]
         else:
             (x1, y1, w1, h1) = cv.boundingRect(contour2)
         # it is easier to calculate the non-overlapping cases because there are less of them.
