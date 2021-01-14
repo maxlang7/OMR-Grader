@@ -278,7 +278,10 @@ class TestBox:
         bot_row_y = np.median(sorted_ys[-min_bubbles_per_row])
         step_size_y = (bot_row_y - top_row_y)/(self.rows -1)
         # We lways expect to have the same number in each group, unless it's the last group
-        expected_number_of_questions = self.rows*len(self.groups)
+        if self.orientation == 'top-to-bottom':
+            expected_number_of_questions = self.columns*len(self.groups)
+        else:
+            expected_number_of_questions = self.rows*len(self.groups)
         num_fewer_last_col = expected_number_of_questions - self.num_questions
         for _ in range(len(self.groups)):
             locations.append([])
@@ -287,17 +290,28 @@ class TestBox:
                 row_count = self.rows - num_fewer_last_col
             else:
                 row_count = self.rows
+
             sorted_xs = sorted(group_extremes[group_num][0])
             sorted_ys = sorted(group_extremes[group_num][1])
-            col_bubble_count = int(row_count/2)
+            col_bubble_count = round(row_count/2)
             left_col_x = np.median(sorted_xs[1:col_bubble_count])
             right_col_x = np.median(sorted_xs[-col_bubble_count:-1])
             step_size_x = (right_col_x-left_col_x)/(self.columns -1)
-
-            for row in range(self.rows):
-                y = top_row_y +(step_size_y * row)
-                for column in range(self.columns):
+            if self.orientation == 'left-to-right':
+                chunks1 = self.rows
+                chunks2 = self.columns
+            elif self.orientation == 'top-to-bottom':
+                chunks1 = self.columns
+                chunks2 = self.rows
+            
+            for chunk1 in range(chunks1):    
+                for chunk2 in range(chunks2):
+                    if self.orientation == 'left-to-right':
+                        column, row = chunk2, chunk1
+                    elif self.orientation == 'top-to-bottom':
+                        row, column = chunk2, chunk1
                     x = left_col_x+(step_size_x * column)
+                    y = top_row_y + (step_size_y * row)
                     group.append([x, y])
         return locations
 
