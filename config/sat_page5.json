@@ -15,8 +15,8 @@
             "multiple_responses": false,
             "num_q_per_super_question": 4, 
             "starting_question_num": 31,
-            "x": 30.0,
-            "y": 130.0,
+            "x": 0.0,
+            "y": 0.0,
             "rows": 12,
             "columns": 4,
             "num_questions": 20,
@@ -70,22 +70,22 @@
             "expected_fraction_of_unfilled_bubbles": 0.97, 
             "groups": [
                 {
-                    "x_min": 90.0, 
+                    "x_min": 60.0, 
                     "x_max": 205.0,
-                    "y_min": 260.0,
-                    "y_max": 580.0
+                    "y_min": 140.0,
+                    "y_max": 585.0
                 },  
                 {
-                    "x_min": 320.0,
+                    "x_min": 290.0,
                     "x_max": 435.0,
-                    "y_min": 260.0,
-                    "y_max": 680.0    
+                    "y_min": 140.0,
+                    "y_max": 585.0    
                 },
                 {
-                    "x_min": 545.0,
-                    "x_max": 660.0,
-                    "y_min": 260.0,
-                    "y_max": 680.0                   
+                    "x_min": 515.0,
+                    "x_max": 665.0,
+                    "y_min": 140.0,
+                    "y_max": 585.0                   
                 }
             ] 
         }
