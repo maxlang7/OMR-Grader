@@ -1116,7 +1116,7 @@ class TestBox:
         # Goes through all bubbles and decides whether they're closer to the 
         # median filled or the median unfilled and updates bubbled accordingly
         num_questions = len(bubble_vals.keys())
-        bottom_val_index = int((num_questions*self.bubbles_per_q)*0.7)
+        bottom_val_index = int((num_questions*self.bubbles_per_q)*self.expected_fraction_of_unfilled_bubbles)
         unfilled_bubble_vals = sorted(functools.reduce(operator.iconcat, bubble_vals.values(), []))[0:bottom_val_index]   
         unfilled_median = np.median(unfilled_bubble_vals)
         filled_bubble_vals = self.get_filled_bubble_vals(bubble_vals, unfilled_median)
@@ -1124,7 +1124,10 @@ class TestBox:
         if self.test == 'act':
             multiplier = 0.3 #ACT has printed letter inside bubbles, so we want to require a higher threshold for bubbled
         elif self.test == 'sat':
-            multiplier = 0.15
+            # We wanted to write an equation that would get us 0.15 and 0.3 depending on whether 
+            # we were using open answer because open answers have a lot more blanks and we wanted
+            # to make our filled threshold stricter.
+            multiplier = (self.expected_fraction_of_unfilled_bubbles * 0.681) - 0.361
         filled_threshold = filled_median * multiplier
         for qnum, v in bubble_vals.items():
             corrected_vals = [val - unfilled_median for val in v]
