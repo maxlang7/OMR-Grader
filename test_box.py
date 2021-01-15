@@ -354,6 +354,20 @@ class TestBox:
                 
         return best_bubble
         
+    def check_grid_coordinates(self, grid):
+        """
+        Goes through the x and y positions of everygrid point and checks if the circles drawn 
+        from them overlap. If they do, it returns False and if they don't it returns True.
+        """
+        for group in grid:
+            for x1, y1 in group:
+                for x2, y2 in group:
+                    if x1 == x2 and y1 == y2:
+                        continue
+                    if np.abs(x1 - x2) < self.bubble_width*0.8 and np.abs(y1 - y2) < self.bubble_height*0.8:
+                        return False
+        return True
+
     def bubble_cleanup(self, bubbles, box_extremes, group_extremes, box):
         """
         Creates a "grid" of where the bubbles should be located based on the coordinates 
@@ -371,7 +385,14 @@ class TestBox:
                     cv.circle(colorbox, (int(point[0]), int(point[1])), radius=5, color=(0,0,255), thickness=-1)
             cv.imshow('', colorbox)
             cv.waitKey()
+        
+        good_grid = self.check_grid_coordinates(expected_bubble_locations)
+
         clean_bubbles = []
+
+        if not good_grid:
+            return clean_bubbles
+
         for _ in range(len(self.groups)):
             clean_bubbles.append([])
         model_bubble = self.get_model_bubble(bubbles)
@@ -392,6 +413,7 @@ class TestBox:
                     bubble_to_append = self.rescue_expected_bubbles(model_bubble, location, clean_bubbles[group_num] + bubbles[group_num])
                     #if the bubble we think is correct overlapps with one that already exists
                     # everything is just wrong and we need to give up and try another threshold.
+                    #TODO Something wrong here for page 5.
                     for group in clean_bubbles:
                         for bubble in group:
                             if bubble is None:
