@@ -7,7 +7,7 @@ from wand.image import Image
 
 class ExampleActTests(unittest.TestCase):
     #turn both to true to see images.
-    verbose_mode = True
+    verbose_mode = False
     debug_mode = verbose_mode
 
     def test_act_page1(self):
