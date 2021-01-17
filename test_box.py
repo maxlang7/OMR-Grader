@@ -975,7 +975,7 @@ class TestBox:
             print(f'adding missing contour: x:{x} y:{y} w:{w} h:{h}')
         return npcopycat_contour
 
-    def grade_question(self, question, question_num, group_num, box):
+    def get_qbubble_vals(self, question, question_num, group_num, box):
         """
         Grades a question and adds the result to the 'bubbled' list.
 
@@ -1099,7 +1099,7 @@ class TestBox:
                     raise Exception(f'We were unable to find the expected number of bubbles ({len(question)} != {self.bubbles_per_q}) for question {question_num}.')
                 shrunken_question = self.shrink_bubbles(question, box)
                 if len(shrunken_question) > 0:
-                    bubble_vals[question_num] = self.grade_question(shrunken_question, question_num, group_index, graybox)
+                    bubble_vals[question_num] = self.get_qbubble_vals(shrunken_question, question_num, group_index, graybox)
         return bubble_vals
 
     def get_filled_bubble_vals(self, bubble_vals, unfilled_median):
@@ -1149,32 +1149,10 @@ class TestBox:
             multiplier = (self.expected_fraction_of_unfilled_bubbles * 0.681) - 0.361
         filled_threshold = filled_median * multiplier
         for qnum, v in bubble_vals.items():
-            corrected_vals = [val - unfilled_median for val in v]
-            bubbled[qnum] = ''
-            qvar = self.get_qvar(corrected_vals)
-            darkest_bubble_val = 0
-            darkest_index = None
-            
-            for bubble_num, val in enumerate(corrected_vals):
-                blank_variance = self.get_qvar(sorted(corrected_vals)[:-1])
-                if val > filled_threshold and qvar > 5*blank_variance:
-                    bubbled[qnum] += self.format_answer(str(bubble_num), qnum)
-                if val > darkest_bubble_val:
-                    darkest_bubble_val = val
-                    darkest_index = bubble_num
-
-            #can we rescue bubbles based on a combination of values?        
-            if bubbled[qnum] == '' and \
-               (( min((qvar / blank_variance), 1.2)) + \
-               (darkest_bubble_val / (filled_threshold*0.95)) > 2.5):
-                    
-                bubbled[qnum] = self.format_answer(str(darkest_index), qnum)
-            if bubbled[qnum] == '':
-                bubbled[qnum] = self.format_answer('', qnum)
+            bubbled[qnum] = self.grade_question(unfilled_median, filled_threshold, qnum, v)
             
         if self.multiple_responses == False:
             for qnum, question in bubbled.items(): 
-                 
                 if len(question) > 1:
                     # ** Will break if order of percents does not match order that bubbles are in **
                     # see if blank questions are supposed to be blank
@@ -1182,6 +1160,28 @@ class TestBox:
                      bubbled[qnum] = self.format_answer(str(darkest_index), qnum)
         return bubbled
 
+    def grade_question(self, unfilled_median, filled_threshold, qnum, v):
+        corrected_vals = [val - unfilled_median for val in v]
+        answer = ''
+        qvar = self.get_qvar(corrected_vals)
+        darkest_bubble_val = 0
+        darkest_index = None
+        for bubble_num, val in enumerate(corrected_vals):
+            blank_variance = self.get_qvar(sorted(corrected_vals)[:-1])
+            if val > filled_threshold and qvar > 5*blank_variance:
+                answer += self.format_answer(str(bubble_num), qnum)
+            if val > darkest_bubble_val:
+                darkest_bubble_val = val
+                darkest_index = bubble_num
+        #can we rescue bubbles based on a combination of values?        
+            if answer == '' and \
+            (( min((qvar / blank_variance), 1.2)) + \
+            (darkest_bubble_val / (filled_threshold*0.95)) > 2.5):
+                answer = self.format_answer(str(darkest_index), qnum)
+        if answer == '':
+            answer = self.format_answer('', qnum)
+
+        return answer
     def grade(self, page_number, box_num):
         """
         Finds and grades a test box within a test image.
