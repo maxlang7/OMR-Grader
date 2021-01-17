@@ -10,16 +10,27 @@ conda env create -f environment.yml
 ```
 
 ### Deployment
-We are using ansible to manage the configuration of our Aws server. To deploy awsgrader using ansible:
+To deploy you can  use 
 ```
-ansible-playbook -i hosts setup_grader_server.yml 
+bash deploy.sh
 ```
-
+Which does the ansible and also activates the conda enviornment.
 ## Running
 There are two types. 
 To run a specific page or box: python dreadnoughtgrader.py --page --imagepath --box --test
 To run a program that listens for a WuFoo form with images: python graderapi.py
+To run the test suite: Use your test runner of choice in the sat or act test files.
 
+## Possible Improvements
+The first thing that could be improved is fixing invalid answers on the SAT super questions. They normally return a no-answer if the answer is invalid, something like "1/". We thought that maybe you could choose the darkest bubble in the next question to make sure the answer has the best chance of being what the student intended.
+
+The different letters on the act have different unfilled thresholds. G is the most, then E, and so on. Encorporating this would only mean making 8 different unfilled_thresholds instead of 1.
+
+.Heic file format. This one is pretty simple, we just have to add a file converter that converts .heic to .jpg or .png.
+
+If the order was mixed up in the Wufoo, we could try  all configs against all pages to find the config with the best bubble detection.
+
+We could scale the config multiple times in case our box detection is a bit off.
 
 ## Acknowledgements
 * Adrian Rosebrock's tutorial "Bubble sheet multiple choice scanner and test grader using OMR, Python, OpenCV"

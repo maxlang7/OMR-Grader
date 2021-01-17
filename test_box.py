@@ -15,7 +15,6 @@ class BoxNotFoundError(Error):
     def __init__(self, message):
         self.message = message
 
-#TODO test_act_page_1a: Failed because there is a blank question where 'G' is called because the letters are inside the bubbles
 class TestBox:
     def __init__(self, page, config, verbose_mode, debug_mode, scale, test, threshold_constant):
         """
@@ -97,7 +96,6 @@ class TestBox:
         #instead of in relation to the test box.
         x = ellipse_bubble[0][0]
         y = ellipse_bubble[0][1]
-        #TODO Figure out what these offsets are for
         x += self.x
         y += self.y
 
@@ -413,7 +411,6 @@ class TestBox:
                     bubble_to_append = self.rescue_expected_bubbles(model_bubble, location, clean_bubbles[group_num] + bubbles[group_num])
                     #if the bubble we think is correct overlapps with one that already exists
                     # everything is just wrong and we need to give up and try another threshold.
-                    #TODO Something wrong here for page 5.
                     for group in clean_bubbles:
                         for bubble in group:
                             if bubble is None:
