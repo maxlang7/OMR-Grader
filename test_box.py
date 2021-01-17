@@ -1174,10 +1174,10 @@ class TestBox:
                 darkest_bubble_val = val
                 darkest_index = bubble_num
         #can we rescue bubbles based on a combination of values?        
-            if answer == '' and \
-            (( min((qvar / blank_variance), 1.2)) + \
-            (darkest_bubble_val / (filled_threshold*0.95)) > 2.5):
-                answer = self.format_answer(str(darkest_index), qnum)
+        if answer == '' and \
+        (( min((qvar / blank_variance), 1.2)) + \
+        (darkest_bubble_val / (filled_threshold*0.95)) > 2.5):
+            answer = self.format_answer(str(darkest_index), qnum)
         if answer == '':
             answer = self.format_answer('', qnum)
 
