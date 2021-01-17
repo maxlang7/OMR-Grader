@@ -512,7 +512,7 @@ class Grader:
         threshold_constant = 0
         if test == 'act':
             threshold_list = [15, 25, 35, 50, 75]
-        if test == 'sat':
+        elif test == 'sat':
             threshold_list = [25, 35, 50]
         for threshold_constant in threshold_list:
             data = self.initialize_return_data()
