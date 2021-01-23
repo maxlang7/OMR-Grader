@@ -110,7 +110,7 @@ def grade_test(examinfo):
                             if not box['name'] in page_answers:
                                 page_answers[box['name']] = OrderedDict()
                             page_answers[box['name']].update(box['results']['bubbled'])
-                    elif 'boxes' in data:
+                    elif 'boxes' in data and len(data['boxes']) > 0:
                         for box in data['boxes']:
                             if box['status'] == 1:
                                 adminerrors.append(box['error'])
