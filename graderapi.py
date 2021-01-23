@@ -133,7 +133,7 @@ def grade_test(examinfo):
             #TODO: to be updated based on studypoint feedback
             send_error_message(email, 'Thank you, test has been processed.', ['We have received your test.', 'Thank you','','- Your friendly test grading llamas ;)'])
         else:
-            print('Tell me whats going on right meow!. How did we get here?')
+            print(f'We got some errors, not adding to database: adminerrors: {adminerrors}, usererrors: {usererrors}')
     except:
         handle_system_error(email, [traceback.format_exc()])
 
