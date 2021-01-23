@@ -17,6 +17,13 @@ class ExampleImageTests(unittest.TestCase):
         self.assertIsNotNone(data)
         self.assertEqual(data['status'], 2)
     
+    
+    def test_badbox(self):
+        grader = g.Grader()
+        jsonData = grader.grade('test/images/badbox1.jpg', self.debug_mode, self.verbose_mode, 1.0, 'sat', 1)
+        data = json.loads(jsonData)
+        self.assertNotEqual(data['status'], 0)
+       
     def test_page1(self):
         grader = g.Grader()
         jsonData = grader.grade('test/images/sat_test1.jpg', self.debug_mode, self.verbose_mode, 1.0, 'sat', 1)
