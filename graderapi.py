@@ -175,19 +175,29 @@ def handle_grader_message():
 
     test = flask.request.form['Field6']
     if test == 'ACT':
-        fields = [17]
-    if test == 'SAT':
-        fields = [8,9,10,11,12]
-    for i in fields:
+        imfields = [17]
+        verfield = 'Field44'
+    elif test == 'SAT':
+        imfields = [8,9,10,11,12]
+        verfield = 'Field15'
+    elif test == 'PSAT':
+        imfields = [49]
+        verfield = 'Field45'
+    else:
+        print(f'unhandled test type: {test}')
+        flask.abort(406)
+
+    for i in imfields:
         imageurls.append(flask.request.form[f'Field{i}-url'])
-    #for jason
+    #for anyone updating --> field names documented here:
     #https://studypoint.wufoo.com/api/code/28
+    
     examinfo = {
     'First Name': flask.request.form['Field1'],
     'Last Name': flask.request.form['Field2'], 
     'Email': flask.request.form['Field5'],
     'Test': test,
-    'Test ID': flask.request.form['Field15'],
+    'Test ID': flask.request.form[verfield],
     'Image Urls': imageurls
     }
     print(f'examinfo: {examinfo}')
