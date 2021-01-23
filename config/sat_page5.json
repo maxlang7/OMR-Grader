@@ -56,7 +56,7 @@
             ] 
         },
         {
-            "name": "box2",
+            "name": "4",
             "type": "number",
             "orientation": "top-to-bottom",
             "multiple_responses": false,
