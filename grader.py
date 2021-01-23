@@ -514,6 +514,10 @@ class Grader:
             threshold_list = [15, 25, 35, 50, 75]
         elif test == 'sat':
             threshold_list = [25, 35, 50]
+        else:
+            data['status'] = 2
+            data['error'] = f'Unsupported Test Type: {test}.'
+            return self.format_error(data)
         for threshold_constant in threshold_list:
             data = self.initialize_return_data()
             try:
