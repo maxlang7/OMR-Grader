@@ -518,6 +518,7 @@ class Grader:
             data['status'] = 2
             data['error'] = f'Unsupported Test Type: {test}.'
             return self.format_error(data)
+        page = None
         for threshold_constant in threshold_list:
             data = self.initialize_return_data()
             try:
