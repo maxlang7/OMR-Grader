@@ -193,8 +193,8 @@ def handle_grader_message():
     #https://studypoint.wufoo.com/api/code/28
     
     examinfo = {
-    'First Name': flask.request.form['Field1'],
-    'Last Name': flask.request.form['Field2'], 
+    'First Name': flask.request.form['Field23'],
+    'Last Name': flask.request.form['Field24'], 
     'Email': flask.request.form['Field5'],
     'Test': test,
     'Test ID': flask.request.form[verfield],
