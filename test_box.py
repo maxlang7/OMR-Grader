@@ -638,7 +638,7 @@ class TestBox:
             
         if len(potential_boxes) == 0:
             raise BoxNotFoundError('No boxes found')
-        elif len(potential_boxes) < self.box_to_grade:
+        elif box_num >= len(potential_boxes) or len(potential_boxes) <= self.box_to_grade:
             raise BoxNotFoundError('Not enough boxes found on the page')
         else:
             if self.debug_mode:
