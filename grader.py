@@ -210,12 +210,18 @@ class Grader:
         for c in line_contours:
             # calculating height by finding difference beween y values.
             current_box_height = self.get_line_contour_y(c) - self.get_line_contour_y(prev_contour)
-            erase_height = int(current_box_height*0.05)
+            erase_height = int(h*0.013)
+            line_separation = round(h*0.0034)
             if current_box_height > min_box_height:
                 ty = self.get_line_contour_y(prev_contour)
                 by = self.get_line_contour_y(c)
-                boxes_to_draw.append(np.array(([x,ty+5],[w-1,ty+5],[w-1,by-5], [x,by-5]), dtype=np.int32))
-                areas_to_erase.append(np.array(([x,ty-erase_height],[w-1,ty-erase_height],[w-1,ty+erase_height], [x,ty+erase_height]), dtype=np.int32))
+                boxes_to_draw.append(np.array(([x, ty+line_separation],
+                                               [w-1, ty+line_separation],
+                                               [w-1, by-line_separation],
+                                               [x, by-line_separation]),
+                                              dtype=np.int32))
+                areas_to_erase.append(np.array(([x, ty-erase_height], [w-1, ty-erase_height],
+                                                [w-1, ty+erase_height], [x, ty+erase_height]), dtype=np.int32))
             prev_contour = c
         # Make sure that theres a box at the top of the page
         top_box_y_pos = boxes_to_draw[0][0][1]

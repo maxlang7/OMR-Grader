@@ -171,7 +171,7 @@ class ExampleActTests(unittest.TestCase):
             
     def test_act_simple(self):
         answer_counts = [75, 60, 40, 40]
-        for testsuffix in ['d', 'f', 'g']:
+        for testsuffix in ['d', 'f', 'g', 'h']:
             print(f'act test 1{testsuffix}')
             grader = g.Grader()
             jsonData = grader.grade(f'test/images/act_test1{testsuffix}.jpg', self.debug_mode, self.verbose_mode, 1.0, 'act', 1)
