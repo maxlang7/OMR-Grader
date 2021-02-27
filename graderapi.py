@@ -113,6 +113,7 @@ def grade_test(examinfo):
                             '',
                             'Thank you!',
                             'StudyPoint'])
+                        usererrors.append('invalid_file_format')
                         break
                     print(f'Wrote image into temporary file succesfully. Grading page {page}')
                     grader = g.Grader()
@@ -137,6 +138,7 @@ def grade_test(examinfo):
                     elif data['status'] == 1:
                         adminerrors.append(f'Problem: {data["error"]}')
                     elif data['status'] == 2:
+                        usererrors.append(data['error'])
                         if data['error'] == 'page_not_found':
                             send_error_message(email, 'Error in your Practice Test Submission', 
                             [f'Our grading system is unable to score the {test} practice test submitted for {name}.',
@@ -151,7 +153,6 @@ def grade_test(examinfo):
                             '',
                             'Thank you!',
                             'StudyPoint'])
-                        
                         elif data['error'] == 'low_res_image':
                             send_error_message(email, 'Error in your Practice Test Submission', 
                             [f'Our grading system is unable to score the {test} practice test submitted for {name}.',
