@@ -137,6 +137,7 @@ def grade_test(examinfo):
                             #     adminerrors.append(f"Unhandled error type {box['status']} {box['error']}")
                     elif data['status'] == 1:
                         adminerrors.append(f'Problem: {data["error"]}')
+                        break
                     elif data['status'] == 2:
                         usererrors.append(data['error'])
                         if data['error'] == 'page_not_found':
@@ -180,6 +181,7 @@ def grade_test(examinfo):
                             'StudyPoint'])
                         else: 
                             adminerrors.append('There is some sort of unhandled user error')
+                        break
                     elif data['status'] == 3:
                         send_error_message(email, 'Error in your Practice Test Submission', 
                         [f'Our grading system is unable to score the {test} practice test submitted for {name}.',
@@ -193,9 +195,10 @@ def grade_test(examinfo):
                         'StudyPoint'])
                         adminerrors.append(data['error'])
                         handle_system_error(adminerrors)
+                        break
                     else:
-                       adminerrors.append('unhandled data["status"]') 
-                    break
+                        adminerrors.append('unhandled data["status"]') 
+                        break
                     
                 else:
                     adminerrors.append('Unable to download {imgurl}')
