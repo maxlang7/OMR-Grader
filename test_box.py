@@ -1200,9 +1200,7 @@ class TestBox:
             gradable_box, gradable_im = self.get_box(box_num)
         except BoxNotFoundError:
             data['status'] = 2
-            data['error'] = f'page: {page_number}\n Could not find the boxes inside the page.\n' + \
-            'We need this border to straighten and scale the image before grading.\n' + \
-            'Please refer to the guidelines document and resubmit.'
+            data['error'] = 'box_not_found'
             return data
         for (treatment) in enumerate(['', 'erase_lines']):
             self.init_result_structures()

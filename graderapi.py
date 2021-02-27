@@ -12,6 +12,7 @@ from datetime import date
 from email.message import EmailMessage
 
 import flask
+import magic # for checking filetypes
 import pyodbc
 import requests
 from celery import Celery
@@ -76,13 +77,9 @@ def download_image(imgurl, imgfile):
         return False
     imgfile.flush()
 
-def handle_system_error(email, adminerrors):
+def handle_system_error(adminerrors):
     send_error_message(adminemail, 'Grader System Error', adminerrors)
-    student_message = 'Sorry, our system was unable to grade your test. ' +\
-                      'Don\'t worry, it is us, not you. ' +\
-                      'We will let you know when the problem is resolved.' 
-    send_error_message(email, 'Grader System Error',[student_message]) 
-
+    
 @celeryapp.task
 def grade_test(examinfo):
     try:
@@ -91,6 +88,7 @@ def grade_test(examinfo):
         imgurls = examinfo['Image Urls']
         test = examinfo['Test']
         email = examinfo['Email']
+        name = f'{examinfo["First Name"]} {examinfo["Last Name"]}'
         page_answers = OrderedDict()
         print(f'trying to grade from: {email} {test}')
         for i, imgurl in enumerate(imgurls):
@@ -100,6 +98,22 @@ def grade_test(examinfo):
                 with open(imgpath, 'wb') as imgfile:
                     download_success = download_image(imgurl, imgfile)
                 if download_success:
+                    filetype = magic.from_file(imgpath, mime=True)
+                    if not (filetype == "image/png" or filetype == "image/jpeg"):
+                        send_error_message(email, 'Error in your Practice Test Submission',
+                        [f'Our grading system is unable to score the {test} practice test submitted for {name}.',
+                            '',
+                            'In order for our system to grade your test, you need to make sure that the image(s) you submitted comply with these guidelines: https://bit.ly/3aiavdW .',
+                            '',
+                            'It appears that the image(s) you submitted are not the file type that our system can handle.',
+                            'Please resubmit your test *as either a .jpg or .png file. Our system is unable to grade .pdf or .heic image formats.*',
+                            '',
+                            'You can submit corrected images of your test here: https://studypoint.wufoo.com/forms/virtual-practice-test-answer-sheet-upload.',
+                            '*Please resubmit all pages.',
+                            '',
+                            'Thank you!',
+                            'StudyPoint'])
+                        break
                     print(f'Wrote image into temporary file succesfully. Grading page {page}')
                     grader = g.Grader()
                     jsonData = grader.grade(imgpath, False, False, 1.0, test.lower(), page)
@@ -110,32 +124,99 @@ def grade_test(examinfo):
                             if not box['name'] in page_answers:
                                 page_answers[box['name']] = OrderedDict()
                             page_answers[box['name']].update(box['results']['bubbled'])
-                    elif 'boxes' in data and len(data['boxes']) > 0:
-                        for box in data['boxes']:
-                            if box['status'] == 1:
-                                adminerrors.append(box['error'])
-                            elif box['status'] == 2:
-                                usererrors.append(box['error'])
-                            else:
-                                adminerrors.append(f"Unhandled error type {box['status']} {box['error']}")
+                    # elif 'boxes' in data and len(data['boxes']) > 0:
+                    #     # We aren't trying to send this message on because it shouldn't happen
+                    #     for box in data['boxes']:
+
+                            # if box['status'] == 1:
+                            #     adminerrors.append(box['error'])
+                            # elif box['status'] == 2:
+                            #     usererrors.append(box['error'])
+                            # else:
+                            #     adminerrors.append(f"Unhandled error type {box['status']} {box['error']}")
+                    elif data['status'] == 1:
+                        adminerrors.append(f'Problem: {data["error"]}')
+                    elif data['status'] == 2:
+                        if data['error'] == 'page_not_found':
+                            send_error_message(email, 'Error in your Practice Test Submission', 
+                            [f'Our grading system is unable to score the {test} practice test submitted for {name}.',
+                            '',
+                            'In order for our system to grade your test, you need to make sure that the image(s) you submitted comply with these guidelines: https://bit.ly/3aiavdW .',
+                            '',
+                            'It appears that the image(s) you submitted do not include the entire page.',
+                            'Please resubmit your test ensuring that the *entire outside edge of each page is visible* in each image.',
+                            '',
+                            'You can submit corrected images of your test here: https://studypoint.wufoo.com/forms/virtual-practice-test-answer-sheet-upload.',
+                            '*Please resubmit all pages.',
+                            '',
+                            'Thank you!',
+                            'StudyPoint'])
+                        
+                        elif data['error'] == 'low_res_image':
+                            send_error_message(email, 'Error in your Practice Test Submission', 
+                            [f'Our grading system is unable to score the {test} practice test submitted for {name}.',
+                            '',
+                            'In order for our system to grade your test, you need to make sure that the image(s) you submitted comply with these guidelines: https://bit.ly/3aiavdW .',
+                            '',
+                            'It appears that the image(s) you submitted are not of high enough resolution for our system.',
+                            'Please resubmit your test ensuring that *the image size is at least 1000 x 1000 pixels per page*.',
+                            '',
+                            'You can submit corrected images of your test here: https://studypoint.wufoo.com/forms/virtual-practice-test-answer-sheet-upload.',
+                            '*Please resubmit all pages.',
+                            '',
+                            'Thank you!',
+                            'StudyPoint'])
+                        elif data['error'] == 'unsupported_test_type':
+                            send_error_message(email, 'Error in your Practice Test Submission', 
+                            [f'Our grading system is unable to score the practice test submitted for {name}.',
+                            '',
+                            'You have selected a test type of PSAT, however our grading system is only able to grade ACT or SAT tests at this time.',
+                            '',
+                            'Please resubmit your test with the correct test type selected here: https://studypoint.wufoo.com/forms/virtual-practice-test-answer-sheet-upload.',
+                            '*Please resubmit all pages.',
+                            '',
+                            'Thank you!',
+                            'StudyPoint'])
+                        else: 
+                            adminerrors.append('There is some sort of unhandled user error')
+                    elif data['status'] == 3:
+                        send_error_message(email, 'Error in your Practice Test Submission', 
+                        [f'Our grading system is unable to score the {test} practice test submitted for {name}.',
+                        '',
+                        'In order for our system to grade your test, you need to make sure that the image(s) you submitted comply with these guidelines: https://bit.ly/3aiavdW .',
+                        '',
+                        'You can submit corrected images of your test here: https://studypoint.wufoo.com/forms/virtual-practice-test-answer-sheet-upload.',
+                        '*Please resubmit all pages.',
+                        '',
+                        'Thank you!',
+                        'StudyPoint'])
+                        adminerrors.append(data['error'])
+                        handle_system_error(adminerrors)
                     else:
-                        adminerrors.append(f"No boxes found because of this error: {data['error']}")
+                       adminerrors.append('unhandled data["status"]') 
+                    break
+                    
                 else:
                     adminerrors.append('Unable to download {imgurl}')
-        if len(usererrors) > 0:
-            usererrors.insert(0, 'Unable to process test. Errors:')
-            send_error_message(email, messagelines=usererrors)
         if len(adminerrors) > 0:
-            handle_system_error(email, adminerrors)
+            handle_system_error(adminerrors)
         if len(adminerrors) == 0 and len(usererrors) == 0:
-            print('No adminerrors or usererrors, uploading to database meow.')
+            print('No admin errors or user errors, uploading to database meow.')
             upload_to_database(examinfo, page_answers)
             #TODO: to be updated based on studypoint feedback
-            send_error_message(email, 'Thank you, test has been processed.', ['We have received your test.', 'Thank you','','- Your friendly test grading llamas ;)'])
+            send_error_message(email, 'Thank you, test has been processed.', 
+            [f'Thank you for submitting the {test} practice test for {name}.', 
+            '',
+            'Your test has been scored successfully!',
+            '',
+            'You can expect a member of our team to reach out to share your scores within 2-3 business days.',
+            '',
+            'Thank you!',
+            'StudyPoint'])
         else:
             print(f'We got some errors, not adding to database: adminerrors: {adminerrors}, usererrors: {usererrors}')
     except:
-        handle_system_error(email, [traceback.format_exc()])
+        handle_system_error([traceback.format_exc()])
 
 def send_error_message(email, subject='We had trouble grading your recent test.', messagelines=[]):
     

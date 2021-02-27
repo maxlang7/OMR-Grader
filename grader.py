@@ -505,7 +505,7 @@ class Grader:
         im_w, im_h, _ = im.shape
         if im_w < 1000 or im_h < 1000:
             data['status'] = 2
-            data['error'] = f'Your image is not high enough resolution for us to identify bubbles. Please send an image that contains at least 1000 x 1000 pixels.'
+            data['error'] = 'low_res_image'
             return self.format_error(data)
 
         # Find largest box within image.
@@ -516,7 +516,7 @@ class Grader:
             threshold_list = [25, 35, 50]
         else:
             data['status'] = 2
-            data['error'] = f'Unsupported Test Type: {test}.'
+            data['error'] = f'unsupported_test_type'
             return self.format_error(data)
         page = None
         for threshold_constant in threshold_list:
@@ -539,7 +539,7 @@ class Grader:
                 # Rotate page until upright.
                 page = self.upright_image(page, config)
                 if page is None:
-                    data['status'] = 1
+                    data['status'] = 3
                     data['error'] = f'Could not upright page in {image_name}'
                     return self.format_error(data)
 
@@ -568,17 +568,17 @@ class Grader:
 
         if page is None:    
             data['status'] = 2
-            data['error'] = f'We were unable to find the outer features of the test. Please refer to the guidelines and resubmit your test.'
+            data['error'] = 'page_not_found'
             return self.format_error(data) 
         
         if len(config['boxes']) != len(data['boxes']):
-            data['status'] = 1
+            data['status'] = 3
             data['error'] = f'We found a page but were unable to find any boxes in {image_name} with threshold constant:{threshold_constant}'
             return self.format_error(data)
 
         for box in data['boxes']:
             if box['status'] != 0:
-                data['status'] = 1
+                data['status'] = 3
                 data['error'] = "One of the boxes in this page failed. For more details, look in the boxes['status'] and boxes['error']"
                 break
 
