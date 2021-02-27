@@ -125,16 +125,6 @@ def grade_test(examinfo):
                             if not box['name'] in page_answers:
                                 page_answers[box['name']] = OrderedDict()
                             page_answers[box['name']].update(box['results']['bubbled'])
-                    # elif 'boxes' in data and len(data['boxes']) > 0:
-                    #     # We aren't trying to send this message on because it shouldn't happen
-                    #     for box in data['boxes']:
-
-                            # if box['status'] == 1:
-                            #     adminerrors.append(box['error'])
-                            # elif box['status'] == 2:
-                            #     usererrors.append(box['error'])
-                            # else:
-                            #     adminerrors.append(f"Unhandled error type {box['status']} {box['error']}")
                     elif data['status'] == 1:
                         adminerrors.append(f'Problem: {data["error"]}')
                         break

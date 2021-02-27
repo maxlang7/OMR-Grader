@@ -588,5 +588,5 @@ class Grader:
                 data['error'] = "One of the boxes in this page failed. For more details, look in the boxes['status'] and boxes['error']"
                 break
 
-        return json.dumps(data)
+        return self.format_error(data)
 
