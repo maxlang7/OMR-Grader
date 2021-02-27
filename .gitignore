@@ -6,3 +6,4 @@ calQuiz/
 serverconfig/hosts
 .env
 Database query.txt
+test/csv/*.csv
