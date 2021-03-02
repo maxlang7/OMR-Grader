@@ -211,6 +211,24 @@ class ExampleImageTests(unittest.TestCase):
             self.assertEqual(len(graded_results['results']['bubbled']),len(expected_answers[i]))        
             self.assertEqual(list(graded_results['results']['bubbled'].values()), expected_answers[i])
 
+
+    def test_page3d(self):
+        grader = g.Grader()
+        jsonData = grader.grade('test/images/sat_test3d.png', self.debug_mode, self.verbose_mode, 1.0, 'sat', 3)
+        data = json.loads(jsonData)
+
+        expected_answers = [ (  'D A A'.split(' ') +
+                                'C B C'.split(' ') +
+                                'B D A'.split(' ') +
+                                'C A D'.split(' ') +
+                                'C B D'.split(' ') ) ,
+                             [3.0, 32.0, 2.0, 8.0, 144.0]
+                           ]
+
+        for i, graded_results in enumerate(data['boxes']):
+            self.assertEqual(len(graded_results['results']['bubbled']),len(expected_answers[i]))        
+            self.assertEqual(list(graded_results['results']['bubbled'].values()), expected_answers[i])
+
     def test_page4a(self):
         grader = g.Grader()
         jsonData = grader.grade('test/images/sat_test4a.png', self.debug_mode, self.verbose_mode, 1.0, 'sat', 4)
