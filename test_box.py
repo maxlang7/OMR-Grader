@@ -1107,7 +1107,7 @@ class TestBox:
         gets a list of all the certainly filled bubble values
         """
         filled_bubble_vals = []
-        expected_filled = len(bubble_vals.keys())
+        expected_filled = int(len(bubble_vals.keys())/2)
         corrected_bubbles = [b - unfilled_median for b in bubble_vals.values()]
         corrected_top_bubbles = sorted(functools.reduce(operator.iconcat, corrected_bubbles, []))[-1*expected_filled:]
         
@@ -1115,7 +1115,7 @@ class TestBox:
         #keep dropping the lowest bubble until bottom-top < 50%
         while (corrected_top_bubbles[-1] - corrected_top_bubbles[i])/corrected_top_bubbles[-1] > 0.5:
             i+=1
-        if i < expected_filled - 5: 
+        if i < expected_filled - 1:
             filled_bubble_vals = corrected_top_bubbles[i:]
         else: #not enough filled, need to use distance from the unfilled instead
             for question in corrected_bubbles:
@@ -1143,10 +1143,16 @@ class TestBox:
         if self.test == 'act':
             multiplier = 0.3 #ACT has printed letter inside bubbles, so we want to require a higher threshold for bubbled
         elif self.test == 'sat':
-            # We wanted to write an equation that would get us 0.15 and 0.3 depending on whether 
-            # we were using open answer because open answers have a lot more blanks and we wanted
+            # open answers have a lot more blanks and we want
             # to make our filled threshold stricter.
-            multiplier = (self.expected_fraction_of_unfilled_bubbles * 0.681) - 0.361
+            if self.expected_fraction_of_unfilled_bubbles > 0.95:
+                # this will get a range of values so we will be stricter when we have less values to reduce chance we count empty as filled.
+                # and so that when we have lots of filled bubbles we are less strict so as to include bubbles that are slightly lighter than the highest filled bubbles
+                
+                #  we just fit a line to the points 20, .2 and 2, 0.6, which we knew worked for example tests.
+                multiplier = len(filled_bubble_vals)*-0.03 + 0.6444 
+            else:
+               multiplier = 0.15
         filled_threshold = filled_median * multiplier
         for qnum, v in bubble_vals.items():
             bubbled[qnum] = self.grade_question(unfilled_median, filled_threshold, qnum, v)
@@ -1168,7 +1174,7 @@ class TestBox:
         darkest_index = None
         for bubble_num, val in enumerate(corrected_vals):
             blank_variance = self.get_qvar(sorted(corrected_vals)[:-1])
-            if val > filled_threshold and qvar > 5*blank_variance:
+            if val > filled_threshold and qvar > 3*blank_variance:
                 answer += self.format_answer(str(bubble_num), qnum)
             if val > darkest_bubble_val:
                 darkest_bubble_val = val
