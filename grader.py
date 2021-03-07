@@ -467,7 +467,7 @@ class Grader:
         }
         return data
 
-    def grade(self, image_name, verbose_mode, debug_mode, scale, test, page_number):
+    def grade(self, image_name, verbose_mode, debug_mode, scale, test, page_number, url = None):
         """
         Grades a test image and outputs the result to stdout as a JSON object.
         It goes through many different thresholds to make sure that we get the page
@@ -481,10 +481,13 @@ class Grader:
             scale (str): Factor to scale image slices by.
             test (str): Name of test
             page_number (int): Page number of test
+            url (str): The url for the image being graded. If not specified, we guess from image name (for test framework).
         """
         # Initialize dictionary to be returned.
         data = self.initialize_return_data()
 
+        if url is None:
+            url = image_name
         # Cast str to float for scale.
         if scale is None:
             scale = 1.0
@@ -559,7 +562,7 @@ class Grader:
                     box_config['min_bubbles_per_box'] = config['min_bubbles_per_box']
                     box_config['box_to_grade'] = config['box_to_grade']
 
-                    box = TestBox(page, box_config, verbose_mode, debug_mode, scale, test, threshold_constant) #make cleaner with new lines
+                    box = TestBox(page, box_config, verbose_mode, debug_mode, scale, test, threshold_constant, url) #make cleaner with new lines
                     results = box.grade(page_number, box_num)
                     if box.status == 0:
                         data['boxes'].append({'name': box.name, 'results': results, 'status': box.status, 'error': box.error})

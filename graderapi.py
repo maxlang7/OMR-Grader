@@ -35,6 +35,7 @@ SMTP_USERNAME=os.getenv('SMTP_USERNAME')
 SMTP_PASSWORD=os.getenv('SMTP_PASSWORD')
 SMTP_PORT=os.getenv('SMTP_PORT')
 
+
 #TODO .Heic
 #TODO If uploaded wrong page to wrong upload, then we can try it agianst other configs to see if they match.
 #TODO Try multipe config scalings in case the box detection is bad
@@ -117,7 +118,7 @@ def grade_test(examinfo):
                         break
                     print(f'Wrote image into temporary file succesfully. Grading page {page}')
                     grader = g.Grader()
-                    jsonData = grader.grade(imgpath, False, False, 1.0, test.lower(), page)
+                    jsonData = grader.grade(imgpath, False, False, 1.0, test.lower(), page, imgurl)
                     data = json.loads(jsonData)
                     if data['status'] == 0:
                         for box in data['boxes']:

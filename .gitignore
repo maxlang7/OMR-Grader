@@ -7,3 +7,4 @@ serverconfig/hosts
 .env
 Database query.txt
 test/csv/*.csv
+log/bubble_intensity_log.csv

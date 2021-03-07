@@ -7,6 +7,10 @@ from collections import OrderedDict
 import functools
 import utils
 import operator
+from dotenv import load_dotenv
+import os 
+import logging
+from logging.handlers import RotatingFileHandler
 
 class Error(Exception):
     pass
@@ -16,7 +20,7 @@ class BoxNotFoundError(Error):
         self.message = message
 
 class TestBox:
-    def __init__(self, page, config, verbose_mode, debug_mode, scale, test, threshold_constant):
+    def __init__(self, page, config, verbose_mode, debug_mode, scale, test, threshold_constant, url):
         """
         Constructor for a new test box.
 
@@ -29,7 +33,7 @@ class TestBox:
             debug_mode (bool): True to run the program in debug mode, False 
                 otherwise.
             scale (float): Factor to scale image slices by.
-
+            url (str): url to image (used for logging)
         Returns:
             TestBox: A newly created test box.
 
@@ -42,6 +46,7 @@ class TestBox:
         self.scale = scale
         self.test = test
         self.threshold_constant = threshold_constant
+        self.url = url
         # Configuration values.
         self.name = config['name']
         self.type = config['type']
@@ -69,6 +74,17 @@ class TestBox:
             self.bubbles_per_q = self.rows
 
         self.init_result_structures()
+        self.setup_loggers()
+
+    def setup_loggers(self):
+        load_dotenv()
+        logpath = os.getenv('INTENSITY_CSV_LOG')
+        handler = RotatingFileHandler(logpath, mode='a', maxBytes=1024**3, backupCount=1, encoding=None, delay=0)
+        handler.setFormatter(logging.Formatter('%(message)s'))
+        handler.setLevel(logging.INFO)
+        self.logger = logging.getLogger()
+        self.logger.setLevel(logging.INFO)
+        self.logger.addHandler(handler)
 
     def init_result_structures(self):
         # Return values.
@@ -1102,6 +1118,14 @@ class TestBox:
                     bubble_vals[question_num] = self.get_qbubble_vals(shrunken_question, question_num, group_index, graybox)
         return bubble_vals
 
+    def append_intensites_to_csv(self, bubble_vals, corrected_bubbles):
+        constant_cols = f'{self.url},{self.test},{self.page_number},{self.box_to_grade},'
+        i = 0
+        for qnum, question_intensities in bubble_vals.items():
+            for j, intensity in enumerate(question_intensities):
+                self.logger.info(constant_cols+f'{qnum},{intensity},{int(corrected_bubbles[i][j])}')
+            i += 1
+
     def get_filled_bubble_vals(self, bubble_vals, unfilled_median):
         """
         gets a list of all the certainly filled bubble values
@@ -1109,6 +1133,7 @@ class TestBox:
         filled_bubble_vals = []
         expected_filled = int(len(bubble_vals.keys())/2)
         corrected_bubbles = [b - unfilled_median for b in bubble_vals.values()]
+        self.append_intensites_to_csv(bubble_vals, corrected_bubbles)
         corrected_top_bubbles = sorted(functools.reduce(operator.iconcat, corrected_bubbles, []))[-1*expected_filled:]
         
         i=0
@@ -1188,6 +1213,7 @@ class TestBox:
             answer = self.format_answer('', qnum)
 
         return answer
+
     def grade(self, page_number, box_num):
         """
         Finds and grades a test box within a test image.
@@ -1196,6 +1222,7 @@ class TestBox:
             data (dict): A dictionary containing info about the graded test box.
 
         """
+        self.page_number = page_number
         # Initialize dictionary to be returned.
         data = {
             'status': 0,
