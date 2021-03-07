@@ -33,9 +33,9 @@ class ExampleImageTests(unittest.TestCase):
                                                     'B A A D B C C B C'.split(' ') +
                                                     'B C C B D A D D'.split(' ') )  
     
-    def test_Mccolloch3(self):
+    def test_Mcc3(self):
         grader = g.Grader()
-        jsonData = grader.grade('test/images/imageMc33.jpeg', self.debug_mode, self.verbose_mode, 1.0, 'sat', 3)
+        jsonData = grader.grade('test/images/imageMcc33.jpeg', self.debug_mode, self.verbose_mode, 1.0, 'sat', 3)
         data = json.loads(jsonData)
 
         expected_answers = [ (  'D A A'.split(' ') +
