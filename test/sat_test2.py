@@ -66,13 +66,13 @@ class ExampleImageTests(unittest.TestCase):
                                              
     
     
-    def test_page5(self):
+    def test_Hut5(self):
         grader = g.Grader()
-        jsonData = grader.grade('test/images/sat_test5.jpg', self.debug_mode, self.verbose_mode, 1.0, 'sat', 5)
+        jsonData = grader.grade('test/images/imageHut35.jpeg', self.debug_mode, self.verbose_mode, 1.0, 'sat', 5)
         data = json.loads(jsonData)
         
-        expected_answers = [ [6.0, 58.6, 9.0, 0.625, '-'],
-                             [150.0, 7.0, 40.0]
+        expected_answers = [ [102.0, 2.0, 30.0, 25.4, 2.0],
+                             [7.0, 576.0, 0.8]
                            ]
 
         for i, graded_results in enumerate(data['boxes']):
