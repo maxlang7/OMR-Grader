@@ -79,7 +79,8 @@ class TestBox:
     def setup_loggers(self):
         load_dotenv()
         logpath = os.getenv('INTENSITY_CSV_LOG')
-        handler = RotatingFileHandler(logpath, mode='a', maxBytes=1024**3, backupCount=1, encoding=None, delay=0)
+        max_log_size = os.getenv('MAX_LOG_SIZE')
+        handler = RotatingFileHandler(logpath, mode='a', maxBytes=max_log_size, backupCount=1, encoding=None, delay=0)
         handler.setFormatter(logging.Formatter('%(message)s'))
         handler.setLevel(logging.INFO)
         self.logger = logging.getLogger()
