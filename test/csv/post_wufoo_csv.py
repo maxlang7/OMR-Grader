@@ -9,15 +9,17 @@ import urllib.request
 @click.command()
 @click.option('-f', required=True)
 @click.option('--mode', required=True, default='post')
+@click.option('--send-email', required=True, default=False)
 @click.option('--url', default='http://ec2-54-174-87-221.compute-1.amazonaws.com:8000/v1/grader', required=True)
-def import_csv_file(f, mode, url):
+def import_csv_file(f, mode, send_email, url):
     with open(f, newline='') as csvfile:
         reader = csv.reader(csvfile)
         #[print(str(i)+':'+value) for i, value in enumerate(line.keys())]
         for line in reader:
             if line[0] == 'Entry Id':
                 continue
-            dict = {'HandshakeKey': 'SPPNscores2020',
+            dict = {'HandshakeKey': 'SPPNscores2020', 
+            'SendEmail': send_email,
             'Field6': line[26],
             'Field17-url': extract_parens(line[30]),
             'Field49-url': extract_parens(line[31]),

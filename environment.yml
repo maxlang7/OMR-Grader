@@ -16,3 +16,4 @@ dependencies:
   - pyodbc
   - python-dotenv
   - python-magic
+  - yaml

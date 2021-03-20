@@ -1,0 +1,85 @@
+page_not_found:
+  subject: Error in your Practice Test Submission
+  body: |
+    Our grading system is unable to score the {test} practice test submitted for {name}
+    
+    In order for our system to grade your test, you need to make sure that the image(s) you submitted comply with these guidelines: https://bit.ly/3aiavdW
+
+    It appears that the image(s) you submitted do not include the entire page.
+    Please resubmit your test ensuring that the *entire outside edge of each page is visible* in each image.
+
+    You can submit corrected images of your test here: https://studypoint.wufoo.com/forms/virtual-practice-test-answer-sheet-upload.
+    *Please resubmit all pages.
+
+    Thank you!
+    StudyPoint
+
+low_res_image:
+  subject: Error in your Practice Test Submission
+  body: |
+    Our grading system is unable to score the {test} practice test submitted for {name}.
+    
+    In order for our system to grade your test, you need to make sure that the image(s) you submitted comply with these guidelines: https://bit.ly/3aiavdW.
+
+    It appears that the image(s) you submitted are not of high enough resolution for our system.
+    Please resubmit your test ensuring that *the image size is at least 1000 x 1000 pixels per page*.
+
+    You can submit corrected images of your test here: https://studypoint.wufoo.com/forms/virtual-practice-test-answer-sheet-upload.
+    *Please resubmit all pages.
+
+    Thank you!
+    StudyPoint
+
+unsupported_test_type:
+  subject: Error in your Practice Test Submission
+  body: |
+    Our grading system is unable to score the {test} practice test submitted for {name}.
+    
+    You have selected a test type of PSAT, however our grading system is only able to grade ACT or SAT tests at this time.
+
+    Please resubmit your test with the correct test type selected here: https://studypoint.wufoo.com/forms/virtual-practice-test-answer-sheet-upload.
+    *Please resubmit all pages.
+
+    Thank you!
+    StudyPoint
+
+unhandled_image_error:
+  subject: Error in your Practice Test Submission
+  body: |
+    Our grading system is unable to score the {test} practice test submitted for {name}.
+    
+    In order for our system to grade your test, you need to make sure that the image(s) you submitted comply with these guidelines: https://bit.ly/3aiavdW.
+
+    You can submit corrected images of your test here: https://studypoint.wufoo.com/forms/virtual-practice-test-answer-sheet-upload.
+    *Please resubmit all pages.
+
+    Thank you!
+    StudyPoint
+
+unsupported_image_format:
+  subject: Error in your Practice Test Submission
+  body: |
+    Our grading system is unable to score the {test} practice test submitted for {name}.
+    
+    In order for our system to grade your test, you need to make sure that the image(s) you submitted comply with these guidelines: https://bit.ly/3aiavdW.
+
+    It appears that the image(s) you submitted are not the file type that our system can handle.
+    Please resubmit your test *as either a .jpg or .png file. Our system is unable to grade .pdf or .heic image formats.*
+
+    You can submit corrected images of your test here: https://studypoint.wufoo.com/forms/virtual-practice-test-answer-sheet-upload.
+    *Please resubmit all pages.
+
+    Thank you!
+    StudyPoint
+
+succesful_submission:
+  subject: Thank you, test has been processed.
+  body: |
+    Thank you for submitting the {test} practice test for {name}.
+    
+    Your test has been scored successfully!
+    
+    You can expect a member of our team to reach out to share your scores within 2-3 business days.
+    
+    Thank you!
+    StudyPoint
