@@ -1,4 +1,4 @@
-# OMR Grader
+# SAT-ACT Grader
 Grader for bubble sheet multiple choice tests using Optical Mark Recognition, Python, and OpenCV. Images should be 300 dpi for maximum accuracy.
 
 ## Getting Started
@@ -16,7 +16,7 @@ bash deploy.sh
 ```
 Which does the ansible and also activates the conda enviornment.
 ## Running
-There are two types. 
+There are three ways to run it. 
 To run a specific page or box: python dreadnoughtgrader.py --page --imagepath --box --test
 To run a program that listens for a WuFoo form with images: python graderapi.py
 To run the test suite: Use your test runner of choice in the sat or act test files.
@@ -31,6 +31,15 @@ The different letters on the act have different unfilled thresholds. G is the mo
 If the order was mixed up in the Wufoo, we could try  all configs against all pages to find the config with the best bubble detection.
 
 We could scale the config multiple times in case our box detection is a bit off.
+
+## Testing
+To test the program, you can use both the sat_test and act_test.py files which will test the results of individual images.
+
+To test graderapi, which normally runs on a server, you can use test_api.sh and then post to it with the post_wufoo_csv.py. 
+```
+python post_wufoo_csv.py -f pol.csv --url http://localhost:7777/v1/grader
+```
+
 
 ## Acknowledgements
 * Adrian Rosebrock's tutorial "Bubble sheet multiple choice scanner and test grader using OMR, Python, OpenCV"

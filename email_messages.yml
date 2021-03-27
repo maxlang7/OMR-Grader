@@ -1,7 +1,7 @@
 page_not_found:
   subject: Error in your Practice Test Submission
   body: |
-    Our grading system is unable to score the {test} practice test submitted for {name}
+    Our grading system is unable to score the {{test}} practice test submitted for {{name}}
     
     In order for our system to grade your test, you need to make sure that the image(s) you submitted comply with these guidelines: https://bit.ly/3aiavdW
 
@@ -17,7 +17,7 @@ page_not_found:
 low_res_image:
   subject: Error in your Practice Test Submission
   body: |
-    Our grading system is unable to score the {test} practice test submitted for {name}.
+    Our grading system is unable to score the {{test}} practice test submitted for {{name}}.
     
     In order for our system to grade your test, you need to make sure that the image(s) you submitted comply with these guidelines: https://bit.ly/3aiavdW.
 
@@ -33,7 +33,7 @@ low_res_image:
 unsupported_test_type:
   subject: Error in your Practice Test Submission
   body: |
-    Our grading system is unable to score the {test} practice test submitted for {name}.
+    Our grading system is unable to score the {{test}} practice test submitted for {{name}}.
     
     You have selected a test type of PSAT, however our grading system is only able to grade ACT or SAT tests at this time.
 
@@ -46,7 +46,7 @@ unsupported_test_type:
 unhandled_image_error:
   subject: Error in your Practice Test Submission
   body: |
-    Our grading system is unable to score the {test} practice test submitted for {name}.
+    Our grading system is unable to score the {{test}} practice test submitted for {{name}}.
     
     In order for our system to grade your test, you need to make sure that the image(s) you submitted comply with these guidelines: https://bit.ly/3aiavdW.
 
@@ -59,7 +59,7 @@ unhandled_image_error:
 unsupported_image_format:
   subject: Error in your Practice Test Submission
   body: |
-    Our grading system is unable to score the {test} practice test submitted for {name}.
+    Our grading system is unable to score the {{test}} practice test submitted for {{name}}.
     
     In order for our system to grade your test, you need to make sure that the image(s) you submitted comply with these guidelines: https://bit.ly/3aiavdW.
 
@@ -72,10 +72,9 @@ unsupported_image_format:
     Thank you!
     StudyPoint
 
-succesful_submission:
   subject: Thank you, test has been processed.
   body: |
-    Thank you for submitting the {test} practice test for {name}.
+    Thank you for submitting the {{test}} practice test for {{name}}.
     
     Your test has been scored successfully!
     
