@@ -1,5 +1,5 @@
-from graderapi import send_error_message
+from graderapi import send_email
 email='max@langhorst.com'
 errors = 'meow'
-send_error_message(email, errors)
+send_email(email, errors)
 

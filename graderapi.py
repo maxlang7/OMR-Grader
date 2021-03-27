@@ -15,6 +15,7 @@ from email.message import EmailMessage
 import flask
 import magic # for checking filetypes
 import pyodbc
+import yaml
 import requests
 from dotenv import load_dotenv
 load_dotenv()
@@ -35,12 +36,12 @@ SMTP_PASSWORD=os.getenv('SMTP_PASSWORD')
 SMTP_PORT=os.getenv('SMTP_PORT')
 
 #TODO .Heic
-#TODO If uploaded wrong page to wrong upload, then we can try it agianst other configs to see if they match.
-#TODO Try multipe config scalings in case the box detection is bad
+#TODO If uploaded wrong page to wrong upload, then we can try it against other configs to see if they match.
+#TODO Try multiple config scalings in case the box detection is bad
 
 def format_email_message(email_tag, email_variables):
     """
-        Formats the email_messages.yaml and returns a string we can email.
+        Formats the email_messages.yml and returns a string we can email.
 
         Args:
             email_tag (str): a tag that identifies which email to take
@@ -49,11 +50,18 @@ def format_email_message(email_tag, email_variables):
             Formatted email subject, ready to send ('str')
             Formatted email body, ready to send ('str')
     """
-    with open('email_messages.yaml') as yaml:
-        raw_email_config = yaml.read().rstrip()
+    email_messages_file = 'email_messages.yml'
+    with open(email_messages_file) as yaml_file:
+        raw_email_config = yaml_file.read().rstrip()
     template = jinja2.Template(raw_email_config)
     prepped_email_config = template.render(email_variables)
     cooked_email_config = yaml.safe_load(prepped_email_config)
+    if not email_tag in cooked_email_config:
+        email_tag = 'unhandled_image_error'
+        message = f'email_tag {email_tag} does not exist in {email_messages_file}'
+        print(message)
+        send_email(adminemail, 'Admin Error', messagelines=[message], send_email_flag=True)
+        
     plated_email_config = [cooked_email_config[email_tag]['subject'],
                            cooked_email_config[email_tag]['body']]
     return plated_email_config
@@ -97,7 +105,7 @@ def download_image(imgurl, imgfile):
     imgfile.flush()
     
 @celeryapp.task
-def grade_test(examinfo):
+def grade_test(examinfo, send_email_flag):
     try:
         usererrors = []
         adminerrors = []
@@ -137,11 +145,11 @@ def grade_test(examinfo):
                     adminerrors.append('Unable to download {imgurl}')
                     
         if len(adminerrors) == 0 and len(usererrors) == 0:
-            print('No admin errors or user errors, uploading to database meow.')
-            upload_to_database(examinfo, page_answers)
-            #TODO: to be updated based on studypoint feedback
+            if not DB_SERVER_NAME == 'skipdb':
+                print('No admin errors or user errors, uploading to database meow.')  
+                upload_to_database(examinfo, page_answers)
             subject, body = format_email_message('succesful_submission', {'test': test, 'name': name})
-            send_error_message(email, subject, body)
+            send_email(email, subject, body, send_email_flag)
         
         else:
             print(f'We got some errors, not adding to database: adminerrors: {adminerrors}, usererrors: {usererrors}')
@@ -151,24 +159,22 @@ def grade_test(examinfo):
                 except:
                     #this means we got a non-specific user error
                     subject, body = format_email_message('unhandled_image_error', {'test': test, 'name': name})
-                send_error_message(email, subject, body)
+                send_email(email, subject, body, send_email_flag)
 
             elif len(adminerrors) > 0:
                 subject, body = format_email_message('unhandled_image_error', {'test': test, 'name': name})
-                send_error_message(email, subject, body)
-                send_error_message(adminemail, 'Grader System Error', adminerrors)
+                send_email(email, subject, body, send_email_flag)
+                send_email(adminemail, 'Grader System Error', adminerrors, send_email_flag)
 
             else:
-                send_error_message(adminemail, 'Crazy Town Error', f'How did we get here? {[traceback.format_exc()]}')
+                send_email(adminemail, 'Crazy Town Error', f'How did we get here? {[traceback.format_exc()]}', send_email_flag)
     except:
-        send_error_message(adminemail, 'Crazy Town Error', f'How did we get here? {[traceback.format_exc()]}')
+        send_email(adminemail, 'Crazy Town Error', f'How did we get here? {[traceback.format_exc()]}', send_email_flag)
 
-def send_error_message(email, subject='We had trouble grading your recent test.', messagelines=[]):
-    if flask.request.form.has_key('SendEmail') and flask.request.form('SendEmail') == False:
-        print(f"Not sending email, but it would be {messagelines}")
+def send_email(email, subject='We had trouble grading your recent test.', messagelines=[], send_email_flag=False):
+    if not send_email_flag:
+        print(f'Skipping email, but it would be {messagelines}')
         return
-    print('something went wrong')
-    return
     msg = EmailMessage()
     msg['Subject'] = subject
     msg['From'] = 'adminvpt@studypoint.com'
@@ -232,7 +238,11 @@ def handle_grader_message():
     'Image Urls': imageurls
     }
     print(f'examinfo: {examinfo}')
-    grade_test.delay(examinfo)
+    send_email = True
+    if 'SendEmail' in flask.request.form and flask.request.form['SendEmail'] == 'False':
+        print(f"Not sending email")
+        send_email = False
+    grade_test.delay(examinfo, send_email)
     return flask.Response(status=202)
 
 @flaskapp.route('/', methods=['GET'])

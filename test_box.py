@@ -78,14 +78,25 @@ class TestBox:
 
     def setup_loggers(self):
         load_dotenv()
+
+        #Console logs
+        self.logger = logging.getLogger()        
+        self.logger.setLevel(logging.INFO)
+        
+        #CSV logs
         logpath = os.getenv('INTENSITY_CSV_LOG')
         max_log_size = int(os.getenv('MAX_LOG_SIZE'))
-        handler = RotatingFileHandler(logpath, mode='a', maxBytes=max_log_size, backupCount=1, encoding=None, delay=0)
-        handler.setFormatter(logging.Formatter('%(message)s'))
-        handler.setLevel(logging.INFO)
-        self.logger = logging.getLogger()
-        self.logger.setLevel(logging.INFO)
-        self.logger.addHandler(handler)
+        csvhandler = RotatingFileHandler(logpath, mode='a', maxBytes=max_log_size, backupCount=1, encoding=None, delay=0)
+        csvhandler.setFormatter(logging.Formatter('%(message)s'))
+        csvhandler.setLevel(logging.INFO)
+        self.csvlogger = logging.getLogger('csv')
+        self.csvlogger.setLevel(logging.INFO)
+        self.csvlogger.addHandler(csvhandler)
+        self.csvlogger.propagate = False
+
+        
+
+
 
     def init_result_structures(self):
         # Return values.
@@ -1124,7 +1135,7 @@ class TestBox:
         i = 0
         for qnum, question_intensities in bubble_vals.items():
             for j, intensity in enumerate(question_intensities):
-                self.logger.info(constant_cols+f'{qnum},{intensity},{int(corrected_bubbles[i][j])}')
+                self.csvlogger.info(constant_cols+f'{qnum},{intensity},{int(corrected_bubbles[i][j])}')
             i += 1
 
     def get_filled_bubble_vals(self, bubble_vals, unfilled_median):
@@ -1234,7 +1245,7 @@ class TestBox:
             gradable_box, gradable_im = self.get_box(box_num)
         except BoxNotFoundError:
             data['status'] = 2
-            data['error'] = 'box_not_found'
+            data['error'] = 'unhandled_image_error'
             return data
         for (treatment) in enumerate(['', 'erase_lines']):
             self.init_result_structures()

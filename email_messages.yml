@@ -72,6 +72,7 @@ unsupported_image_format:
     Thank you!
     StudyPoint
 
+succesful_submission:
   subject: Thank you, test has been processed.
   body: |
     Thank you for submitting the {{test}} practice test for {{name}}.

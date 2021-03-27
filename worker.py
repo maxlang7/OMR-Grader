@@ -3,11 +3,11 @@ from celery import Celery
 
 
 broker_url = os.getenv('CELERY_BROKER_URL')
-broker_dir = os.getenv('CELERY_BROKER_FOLDER', './broker')
 
-if broker_url != 'filesystem://':
-    celeryapp = Celery('tasks', broker='pyamqp://guest@localhost//')
-else:
+if broker_url == 'filesystem://':
+    #local computer
+    broker_dir = os.getenv('CELERY_BROKER_FOLDER', './broker')
+
     for f in ['out', 'processed']:
         if not os.path.exists(os.path.join(broker_dir, f)):
             os.makedirs(os.path.join(broker_dir, f))
@@ -24,3 +24,6 @@ else:
         'task_serializer': 'json',
         'result_serializer': 'json',
         'accept_content': ['json']})
+else:
+    #server
+    celeryapp = Celery('tasks', broker='pyamqp://guest@localhost//')
