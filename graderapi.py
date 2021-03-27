@@ -149,7 +149,7 @@ def grade_test(examinfo, send_email_flag):
                 print('No admin errors or user errors, uploading to database meow.')  
                 upload_to_database(examinfo, page_answers)
             subject, body = format_email_message('succesful_submission', {'test': test, 'name': name})
-            send_email(email, subject, body, send_email_flag)
+            send_email(email, subject, [body], send_email_flag)
         
         else:
             print(f'We got some errors, not adding to database: adminerrors: {adminerrors}, usererrors: {usererrors}')
@@ -159,17 +159,17 @@ def grade_test(examinfo, send_email_flag):
                 except:
                     #this means we got a non-specific user error
                     subject, body = format_email_message('unhandled_image_error', {'test': test, 'name': name})
-                send_email(email, subject, body, send_email_flag)
+                send_email(email, subject, [body], send_email_flag)
 
             elif len(adminerrors) > 0:
                 subject, body = format_email_message('unhandled_image_error', {'test': test, 'name': name})
-                send_email(email, subject, body, send_email_flag)
+                send_email(email, subject, [body], send_email_flag)
                 send_email(adminemail, 'Grader System Error', adminerrors, send_email_flag)
 
             else:
-                send_email(adminemail, 'Crazy Town Error', f'How did we get here? {[traceback.format_exc()]}', send_email_flag)
+                send_email(adminemail, 'Crazy Town Error', [f'How did we get here? {[traceback.format_exc()]}'], send_email_flag)
     except:
-        send_email(adminemail, 'Crazy Town Error', f'How did we get here? {[traceback.format_exc()]}', send_email_flag)
+        send_email(adminemail, 'Crazy Town Error', [f'How did we get here? {[traceback.format_exc()]}'], send_email_flag)
 
 def send_email(email, subject='We had trouble grading your recent test.', messagelines=[], send_email_flag=False):
     if not send_email_flag:
