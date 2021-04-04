@@ -90,17 +90,17 @@ class ExampleImageTests(unittest.TestCase):
                                                                    'A B D D B A B C A C B D A'.split(' ') )
 
 
-    def test_heictest(self):
-        grader = g.Grader()
-        with Image(filename='test/images/sat_test1a.heic') as img:  
-            img.format = 'jpeg'
-            img.save(filename='test/images/sat_test1a.heic_jpeg')
-        jsonData = grader.grade('test/images/sat_test1a.heic_jpeg', self.debug_mode, self.verbose_mode, 1.0, 'sat', 1)
-        data = json.loads(jsonData)
-        self.assertEqual(list(data['boxes'][0]['results']['bubbled'].values()), 'D B A A D A D B B D D D A'.split(' ') +
-                                                                   'D D A C C A B C B B B C B'.split(' ') +
-                                                                   'D D B B C B B A C A B C A'.split(' ') +
-                                                                   'A B D D B A B C A C B D A'.split(' ') )
+    # def test_heictest(self):
+    #     grader = g.Grader()
+    #     with Image(filename='test/images/sat_test1a.heic') as img:  
+    #         img.format = 'jpeg'
+    #         img.save(filename='test/images/sat_test1a.heic_jpeg')
+    #     jsonData = grader.grade('test/images/sat_test1a.heic_jpeg', self.debug_mode, self.verbose_mode, 1.0, 'sat', 1)
+    #     data = json.loads(jsonData)
+    #     self.assertEqual(list(data['boxes'][0]['results']['bubbled'].values()), 'D B A A D A D B B D D D A'.split(' ') +
+    #                                                                'D D A C C A B C B B B C B'.split(' ') +
+    #                                                                'D D B B C B B A C A B C A'.split(' ') +
+    #                                                                'A B D D B A B C A C B D A'.split(' ') )
 
     def test_page1b(self):
         grader = g.Grader()
