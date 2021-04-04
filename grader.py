@@ -246,18 +246,13 @@ class Grader:
         Gets the first point, last point, slope, intercept, width, height, and 
         the np.array of the contour pased
         """
-        x, y, w, h = cv.boundingRect(contour)
+        _x, _y, w, h = cv.boundingRect(contour)
         xs = [p[0][0] for p in contour]
         ys = [p[0][1] for p in contour]
         m,b = np.polyfit(xs,ys,1)
         sorted_contour = sorted(contour, key=lambda p: p[0][0], reverse = False)
         first_point = sorted_contour[0][0]
         last_point = sorted_contour[-1][0]
-        if y - first_point[1] < h/2:
-            slope = (h/w)*-1
-        # we didn't find one in the upper left, so first_point is lower left
-        else:
-            slope = h/w
         
         return {
                 'first_point': first_point, 

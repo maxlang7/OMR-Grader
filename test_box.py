@@ -559,7 +559,7 @@ class TestBox:
         return im
 
     def box_contains_bubbles(self, box, threshold):
-        (x, y, w, h) = cv.boundingRect(box)
+        (_x, _y, w, _h) = cv.boundingRect(box)
         bubbles = []
         # Some boxes are too small and can't be 4-point-transformed so they aren't gonna be the one we want anyway.
         
