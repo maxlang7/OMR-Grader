@@ -1,6 +1,7 @@
 import csv
 import sys
 import os
+import magic #for getting filetypes
 import urllib.parse
 import click
 from numpy.lib.function_base import extract
@@ -40,20 +41,25 @@ def import_csv_file(f, mode, send_email, url):
                 resp = requests.post(url, dict)
                 print(resp)
             elif mode == 'download':
-                for i in range(29, 36):
-                    imagelink = extract_parens(line[i])
-                    if imagelink == '':
+                for i in range(29, 37):
+                    if line[i] == '' or not '(' in line[i]:
                         continue
+                    imagelink = extract_parens(line[i])
                     path = urllib.parse.urlparse(imagelink).path
-                    extension = os.path.splitext(path)[1]
-                    filename = f'/Users/maxanna/Documents/AutoGrader/OMR-Grader/test/images/image{line[9]}{i}.{extension}'
+                    filename = f'/Users/maxanna/Documents/AutoGrader/OMR-Grader/test/images/mystery_tests/image{line[9]}{i}.'
                     urllib.request.urlretrieve(imagelink, filename)
+                    filetype = magic.from_file(filename, mime=True)
+                    if filetype == "image/png":
+                        extension = 'png'
+                    elif filetype == 'image/jpeg':
+                        extension = 'jpg'
+                    os.rename(filename, filename+extension)
 
 
            
             
 def extract_parens(input):
-    if len(input) == 0:
+    if len(input) == 0 or not '(' in input:
         return input
     return input.split('(')[1].split(')')[0]
 
