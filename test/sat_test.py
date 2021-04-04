@@ -3,7 +3,6 @@ import json
 import sys, os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', ''))
 import grader as g
-from wand.image import Image
 
 class ExampleImageTests(unittest.TestCase):
     #turn both to true to see images.
