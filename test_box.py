@@ -508,7 +508,7 @@ class TestBox:
                     group_extremes[group_num][0].append(contour_x)
                     group_extremes[group_num][1].append(contour_y)
                 else:
-                    print(f'no group found for bubble: {cv.fitEllipse(contour)}')
+                    print(f'no group found for bubble: Contour dimensions:{cv.fitEllipse(contour)} self.groups:{self.groups}')
             else:
                 nonbubbles.append(contour)
         clean_bubbles = self.bubble_cleanup(bubbles, box_extremes, group_extremes, box)
